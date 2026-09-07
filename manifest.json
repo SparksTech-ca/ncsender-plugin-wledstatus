@@ -1,0 +1,21 @@
+{
+  "id": "com.sparkstech.wledstatus",
+  "name": "WLED Status Light",
+  "version": "0.2.0",
+  "minAppVersion": "2.0.88",
+  "commands": "commands.js",
+  "configUi": "config.html",
+  "author": "SparksTech",
+  "description": "Mirrors CNC machine status to a WLED-based RGB LED controller over its local HTTP JSON API.",
+  "category": "utility",
+  "icon": "icon.png",
+  "repository": "",
+  "priority": 20,
+  "platforms": {
+    "v2": "2.0.88",
+    "pro-v2": "2.0.149"
+  },
+  "toolMenu": [
+    { "id": "open-config", "label": "WLED Status Light", "icon": "icon.png", "clientOnly": true }
+  ]
+}

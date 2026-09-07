@@ -1,0 +1,620 @@
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: system-ui, sans-serif;
+    padding: 0;
+    margin: 0;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+  }
+  .wled-wrapper { display: flex; flex-direction: column; }
+  .wled-scroll { padding: 20px 24px 0; }
+
+  .warn-box {
+    display: flex; gap: 10px; align-items: flex-start;
+    background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.5);
+    border-radius: 8px; padding: 12px 14px; font-size: 0.82rem; line-height: 1.45;
+    margin-bottom: 20px;
+  }
+  .warn-box .icon { font-size: 1rem; line-height: 1.4; }
+
+  .card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--color-text-secondary); margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;
+  }
+
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .field-grid .span-2 { grid-column: 1 / -1; }
+  .form-group { margin: 0 0 14px 0; }
+  .form-group:last-child { margin-bottom: 0; }
+  label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%; padding: 9px 10px; font-size: 0.88rem;
+    background: rgba(0, 0, 0, 0.18); color: var(--color-text-primary);
+    border: 1px solid var(--color-border); border-radius: 6px;
+    transition: border-color 0.15s;
+  }
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    outline: none; border-color: var(--color-accent);
+  }
+  input[type="text"]::placeholder, input[type="number"]::placeholder { color: var(--color-text-secondary); opacity: 0.6; }
+
+  .checkbox-row {
+    display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 0.88rem; cursor: pointer;
+  }
+  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent); }
+
+  .color-grid { display: flex; flex-wrap: wrap; gap: 16px 22px; }
+  .color-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex: 0 0 100px; }
+  .color-row label { margin: 0; text-transform: capitalize; font-weight: 500; font-size: 0.82rem; white-space: nowrap; }
+  input[type="color"] {
+    width: 44px; height: 30px; padding: 0; cursor: pointer;
+    border: 1px solid var(--color-border); border-radius: 5px; background: none;
+  }
+
+  .hint { font-size: 0.78rem; color: var(--color-text-secondary); margin-top: 5px; line-height: 1.4; }
+
+  .action-bar {
+    position: sticky; bottom: 0;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 14px 24px; margin-top: 4px;
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+  }
+  button {
+    padding: 10px 18px; border: none; border-radius: 7px; cursor: pointer;
+    font-weight: 600; font-size: 0.85rem; transition: filter 0.15s, transform 0.05s;
+  }
+  button:active { transform: scale(0.98); }
+  button.primary { background: var(--color-accent); color: #1a1a1a; }
+  button.secondary { background: rgba(255, 255, 255, 0.08); color: var(--color-text-primary); }
+  button:hover { filter: brightness(1.12); }
+
+  #status { font-size: 0.82rem; min-height: 1.1em; flex-basis: 100%; }
+  #liveState {
+    font-size: 0.8rem; color: var(--color-text-secondary);
+    display: flex; align-items: center; gap: 6px; flex-basis: 100%;
+  }
+  #liveState .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-secondary); flex-shrink: 0;
+  }
+  .secondary-host-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .secondary-host-row input[type="text"] { flex: 1; }
+  .secondary-host-row button {
+    padding: 8px 12px; background: rgba(239, 68, 68, 0.15); color: #ef4444; flex-shrink: 0;
+  }
+</style>
+
+<div class="wled-wrapper">
+  <div class="wled-scroll">
+    <div class="warn-box">
+      <span class="icon">⚠️</span>
+      <span><strong>Known limitation:</strong> the light only updates while this dialog is open — background
+      (dialog-closed) updates depend on a plugin capability we're still confirming with the ncSender
+      developer. The status line at the bottom confirms live updates are working right now.</span>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 Connection</div>
+      <div class="form-group">
+        <label for="wledHost">WLED hostname or IP</label>
+        <input type="text" id="wledHost" placeholder="wled-cnc.local">
+        <div class="hint">mDNS hostname (e.g. wled-cnc.local) or a static IP like 192.168.1.50. This is the primary instance — it gets the X-axis follower if enabled below.</div>
+      </div>
+      <div class="field-grid">
+        <div class="form-group">
+          <label for="brightness">Brightness (1-255)</label>
+          <input type="number" id="brightness" min="1" max="255">
+        </div>
+        <div class="form-group">
+          <label for="idleOffMinutes">Turn off after idle (minutes, 0 = never)</label>
+          <input type="number" id="idleOffMinutes" min="0" max="1440">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔌 Additional WLED Instances</div>
+      <div class="hint" style="margin-bottom: 12px;">Extra WLED devices that mirror the same status colors (no X-axis follower) and share the same idle auto-off timer.</div>
+      <div id="secondaryHostsList"></div>
+      <button class="secondary" id="addSecondaryHostBtn" type="button" style="margin-top: 8px;">+ Add Instance</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎉 Job Completion</div>
+      <div class="field-grid">
+        <div class="form-group">
+          <label for="completionEffect">Effect</label>
+          <select id="completionEffect">
+            <option value="fireworks">Fireworks</option>
+            <option value="chase">Chase</option>
+            <option value="theaterchase">Theater Chase</option>
+            <option value="colorloop">Colorloop</option>
+            <option value="strobe">Strobe</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="completionDurationSec">Duration (seconds)</label>
+          <input type="number" id="completionDurationSec" min="1" max="60">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">↔️ X-Axis Follower</div>
+      <div class="form-group">
+        <label class="checkbox-row">
+          <input type="checkbox" id="xFollowEnabled">
+          Enable follower (shows machine X position as a moving cursor)
+        </label>
+      </div>
+      <div class="form-group">
+        <label class="checkbox-row">
+          <input type="checkbox" id="xFollowInvert">
+          Invert direction (cursor moves opposite to raw X position)
+        </label>
+      </div>
+      <div class="field-grid">
+        <div class="form-group">
+          <label for="ledCount">LED count</label>
+          <input type="number" id="ledCount" min="1" max="1000">
+        </div>
+        <div class="form-group">
+          <label for="followerWidth">Cursor width (LEDs)</label>
+          <input type="number" id="followerWidth" min="1" max="20">
+        </div>
+        <div class="form-group">
+          <label for="followerColor">Cursor color</label>
+          <input type="color" id="followerColor">
+        </div>
+        <div class="form-group">
+          <label for="xMaxOverride">X max travel override (mm)</label>
+          <input type="number" id="xMaxOverride" min="0" step="0.1" placeholder="auto">
+        </div>
+        <div class="form-group">
+          <label for="followerStartOffset">Start offset (LEDs)</label>
+          <input type="number" id="followerStartOffset" min="0" max="1000">
+        </div>
+        <div class="form-group">
+          <label for="followerEndOffset">End offset (LEDs)</label>
+          <input type="number" id="followerEndOffset" min="0" max="1000">
+        </div>
+        <div class="form-group span-2" style="margin-top: -8px;">
+          <div class="hint">Leave the travel override blank to use $130 if available. Use the start/end offsets if your LED strip is longer than the machine's actual travel — e.g. 5 unreachable LEDs on each end means start offset 5, end offset 5.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎨 State Colors</div>
+      <div class="color-grid" id="colorGrid"></div>
+    </div>
+  </div>
+
+  <div class="action-bar">
+    <button class="secondary" id="testBtn">Test Connection (flash white)</button>
+    <button class="primary" id="saveBtn">Save</button>
+    <button class="secondary" id="closeBtn">Close</button>
+    <div id="status"></div>
+    <div id="liveState"><span class="dot" id="liveStateDot"></span><span id="liveStateText">Live status: waiting for machine state...</span></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const initialConfig = __INITIAL_CONFIG__;
+  const FALLBACK_PORT = __SERVER_PORT__;
+  const PLUGIN_ID = 'com.sparkstech.wledstatus';
+  const STATES = ['idle', 'homing', 'run', 'hold', 'alarm', 'door', 'check', 'probing', 'tool-changing'];
+
+  const EFFECTS = { fireworks: 42, chase: 28, theaterchase: 11, colorloop: 8, strobe: 23 };
+
+  const resolveApiBaseUrl = function () {
+    if (window.ncSender && typeof window.ncSender.getApiBaseUrl === 'function') {
+      return window.ncSender.getApiBaseUrl(FALLBACK_PORT);
+    }
+    return '';
+  };
+  const BASE_URL = resolveApiBaseUrl();
+  console.log('[WLED plugin] BASE_URL resolved to:', JSON.stringify(BASE_URL), 'window.ncSender present:', !!window.ncSender);
+
+  const getInput = (id) => document.getElementById(id);
+  const statusEl = getInput('status');
+  const liveStateTextEl = getInput('liveStateText');
+  const liveStateDotEl = getInput('liveStateDot');
+
+  const STATE_DOT_COLORS = {
+    idle: '#8a8a8a', homing: '#00d2ff', run: '#22c55e', hold: '#f59e0b', alarm: '#ef4444',
+    door: '#fd7e14', check: '#3b82f6', probing: '#1abc9c', 'tool-changing': '#c912a8'
+  };
+
+  let settings = initialConfig;
+  let lastDisplayState = null;
+  let celebrating = false;
+  let cachedXMax = null;
+  let lastJobStatus = null;
+
+  // The server only includes `status` on some server-state-updated messages
+  // (e.g. on a real status poll) — messages fired mid-jog often carry just
+  // MPos/WPos with no status field at all. Track both independently and
+  // recompute the display state from whichever pieces we've most recently
+  // seen, rather than expecting one complete snapshot per message.
+  let lastKnownMachineState = {};
+
+  function rgbToHex(c) {
+    if (!c) return '#FFFFFF';
+    const h = (n) => n.toString(16).padStart(2, '0');
+    return '#' + h(c.r) + h(c.g) + h(c.b);
+  }
+  function hexToRgb(hex) {
+    hex = hex.replace('#', '');
+    return {
+      r: parseInt(hex.substring(0, 2), 16),
+      g: parseInt(hex.substring(2, 4), 16),
+      b: parseInt(hex.substring(4, 6), 16)
+    };
+  }
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg;
+    statusEl.style.color = isError ? '#dc3545' : 'var(--color-text-secondary)';
+  }
+
+  // === Form population ===
+
+  function renderSecondaryHostsList() {
+    const container = getInput('secondaryHostsList');
+    container.innerHTML = '';
+    const hosts = settings.secondaryWledHosts && settings.secondaryWledHosts.length ? settings.secondaryWledHosts : [];
+    hosts.forEach((host) => addSecondaryHostRow(host));
+  }
+
+  function addSecondaryHostRow(value) {
+    const container = getInput('secondaryHostsList');
+    const row = document.createElement('div');
+    row.className = 'secondary-host-row';
+    row.innerHTML =
+      '<input type="text" class="secondary-host-input" placeholder="wled-2.local" value="' + (value || '') + '">' +
+      '<button type="button" class="remove-host-btn">Remove</button>';
+    row.querySelector('.remove-host-btn').addEventListener('click', () => row.remove());
+    container.appendChild(row);
+  }
+
+  function populateForm() {
+    console.log('[WLED plugin] populateForm — settings.colors:', JSON.stringify(settings.colors));
+    getInput('wledHost').value = settings.wledHost || '';
+    getInput('brightness').value = settings.brightness ?? 255;
+    getInput('idleOffMinutes').value = settings.idleOffMinutes ?? 0;
+    getInput('completionEffect').value = settings.completionEffect || 'fireworks';
+    getInput('completionDurationSec').value = settings.completionDurationSec ?? 6;
+    getInput('xFollowEnabled').checked = !!settings.xFollowEnabled;
+    getInput('xFollowInvert').checked = !!settings.xFollowInvert;
+    getInput('ledCount').value = settings.ledCount ?? 30;
+    getInput('followerStartOffset').value = settings.followerStartOffset ?? 0;
+    getInput('followerEndOffset').value = settings.followerEndOffset ?? 0;
+    getInput('followerWidth').value = settings.followerWidth ?? 1;
+    getInput('followerColor').value = rgbToHex(settings.followerColor);
+    getInput('xMaxOverride').value = settings.xMaxOverride ?? '';
+    renderSecondaryHostsList();
+
+    const grid = getInput('colorGrid');
+    grid.innerHTML = '';
+    STATES.forEach((state) => {
+      const row = document.createElement('div');
+      row.className = 'color-row';
+      row.innerHTML = '<label>' + state.replace('-', ' ') + '</label>' +
+        '<input type="color" data-state="' + state + '" value="' + rgbToHex(settings.colors[state]) + '">';
+      grid.appendChild(row);
+    });
+  }
+
+  function gatherFormData() {
+    const colors = {};
+    document.querySelectorAll('#colorGrid input[type=color]').forEach((input) => {
+      colors[input.getAttribute('data-state')] = hexToRgb(input.value);
+    });
+    const secondaryWledHosts = Array.from(document.querySelectorAll('.secondary-host-input'))
+      .map((input) => input.value.trim())
+      .filter((v) => v.length > 0);
+    return {
+      wledHost: getInput('wledHost').value.trim(),
+      secondaryWledHosts,
+      brightness: parseInt(getInput('brightness').value, 10) || 255,
+      idleOffMinutes: parseInt(getInput('idleOffMinutes').value, 10) || 0,
+      completionEffect: getInput('completionEffect').value,
+      completionDurationSec: parseInt(getInput('completionDurationSec').value, 10) || 6,
+      xFollowEnabled: getInput('xFollowEnabled').checked,
+      xFollowInvert: getInput('xFollowInvert').checked,
+      ledCount: parseInt(getInput('ledCount').value, 10) || 30,
+      followerStartOffset: parseInt(getInput('followerStartOffset').value, 10) || 0,
+      followerEndOffset: parseInt(getInput('followerEndOffset').value, 10) || 0,
+      followerWidth: parseInt(getInput('followerWidth').value, 10) || 1,
+      followerColor: hexToRgb(getInput('followerColor').value),
+      xMaxOverride: getInput('xMaxOverride').value ? parseFloat(getInput('xMaxOverride').value) : null,
+      colors
+    };
+  }
+
+  async function saveSettings() {
+    settings = gatherFormData();
+    try {
+      const res = await fetch(BASE_URL + '/api/plugins/' + PLUGIN_ID + '/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings)
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      setStatus('Settings saved.', false);
+    } catch (err) {
+      setStatus('Failed to save settings: ' + (err.message || err), true);
+    }
+  }
+
+  // === WLED communication ===
+
+  async function sendToHost(host, body) {
+    if (!host) return false;
+    console.log('[WLED plugin] sendToHost -> host:', host, 'body:', JSON.stringify(body));
+    try {
+      const res = await fetch('http://' + host + '/json/state', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      console.log('[WLED plugin] sendToHost response status:', host, res.status, res.ok);
+      return res.ok;
+    } catch (err) {
+      console.log('[WLED plugin] sendToHost threw:', host, err);
+      setStatus('WLED request to ' + host + ' failed (check host/CORS): ' + (err.message || err), true);
+      return false;
+    }
+  }
+
+  function getAllHosts() {
+    const hosts = [];
+    if (settings.wledHost) hosts.push(settings.wledHost);
+    (settings.secondaryWledHosts || []).forEach((h) => { if (h) hosts.push(h); });
+    return hosts;
+  }
+
+  function buildSegments(bgColor, followerIndex) {
+    if (!settings.xFollowEnabled || followerIndex == null) {
+      return [{ fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] }];
+    }
+
+    const width = Math.max(1, settings.followerWidth || 1);
+    const ledCount = Math.max(1, settings.ledCount || 30);
+    // Center the cursor on followerIndex rather than starting there.
+    const halfWidth = Math.floor(width / 2);
+    const start = Math.max(0, Math.min(ledCount - width, followerIndex - halfWidth));
+    const stop = Math.min(ledCount, start + width);
+    const fc = settings.followerColor || { r: 255, g: 255, b: 255 };
+
+    return [
+      { id: 0, start: 0, stop: ledCount, fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] },
+      { id: 1, start, stop, fx: 0, col: [[fc.r, fc.g, fc.b]] }
+    ];
+  }
+
+  // Applies the current state color to every configured host. The primary
+  // host (settings.wledHost) gets the X-axis follower segments if enabled;
+  // secondary hosts always get a plain background-color-only update, since
+  // the follower is a primary-only feature (avoids trying to guess a
+  // meaningful LED range on strips of unknown/different lengths).
+  async function applyColor(state, followerIndex) {
+    const color = (settings.colors && settings.colors[state]) || { r: 255, g: 255, b: 255 };
+    const brightness = settings.brightness ?? 255;
+    console.log('[WLED plugin] applyColor -> state:', state, 'color:', JSON.stringify(color), 'followerIndex:', followerIndex);
+
+    const tasks = [];
+    const primaryHost = (settings.wledHost || '').trim();
+    if (primaryHost) {
+      tasks.push(sendToHost(primaryHost, { on: true, bri: brightness, seg: buildSegments(color, followerIndex) }));
+    }
+    const secondaryBody = { on: true, bri: brightness, seg: [{ fx: 0, col: [[color.r, color.g, color.b]] }] };
+    (settings.secondaryWledHosts || []).forEach((host) => {
+      tasks.push(sendToHost(host, secondaryBody));
+    });
+    await Promise.all(tasks);
+  }
+
+  async function playCompletionEffect() {
+    const fx = EFFECTS[settings.completionEffect] ?? EFFECTS.fireworks;
+    const durationMs = (settings.completionDurationSec ?? 6) * 1000;
+    const brightness = settings.brightness ?? 255;
+    celebrating = true;
+    const body = { on: true, bri: brightness, seg: [{ fx, sx: 180, ix: 200 }] };
+    await Promise.all(getAllHosts().map((host) => sendToHost(host, body)));
+    setTimeout(async () => {
+      celebrating = false;
+      lastDisplayState = 'idle';
+      await applyColor('idle', null);
+    }, durationMs);
+  }
+
+  async function testFlash() {
+    const bri = settings.brightness ?? 255;
+    const hosts = getAllHosts();
+    for (let i = 0; i < 3; i++) {
+      await Promise.all(hosts.map((h) => sendToHost(h, { on: true, bri, seg: [{ fx: 0, col: [[255, 255, 255]] }] })));
+      await new Promise((r) => setTimeout(r, 300));
+      await Promise.all(hosts.map((h) => sendToHost(h, { on: true, bri, seg: [{ fx: 0, col: [[0, 0, 0]] }] })));
+      await new Promise((r) => setTimeout(r, 300));
+    }
+    if (lastDisplayState) await applyColor(lastDisplayState, null);
+    setStatus('Test flash sent to ' + hosts.length + ' instance(s).', false);
+  }
+
+  // === Idle auto-off ===
+  // Tracks how long the machine has continuously been idle, independent of
+  // the "did the display state change" gate used for normal color updates -
+  // idle-off needs to fire *while* the state stays unchanged (idle) for a
+  // long time, which normal state-change-triggered updates would never see.
+
+  let idleSince = null;
+  let poweredOffForIdle = false;
+
+  function trackIdleTiming(state) {
+    if (state === 'idle') {
+      if (idleSince === null) idleSince = Date.now();
+    } else {
+      idleSince = null;
+      poweredOffForIdle = false;
+    }
+  }
+
+  async function checkIdleTimeout() {
+    if (!settings || !settings.idleOffMinutes || settings.idleOffMinutes <= 0) return;
+    if (idleSince === null || poweredOffForIdle || celebrating) return;
+    const elapsedMs = Date.now() - idleSince;
+    if (elapsedMs >= settings.idleOffMinutes * 60000) {
+      poweredOffForIdle = true;
+      const hosts = getAllHosts();
+      await Promise.all(hosts.map((h) => sendToHost(h, { on: false })));
+      log_idle('idle timeout reached (' + settings.idleOffMinutes + ' min) — turned off ' + hosts.length + ' instance(s)');
+    }
+  }
+
+  function log_idle(msg) {
+    console.log('[WLED plugin]', msg);
+  }
+
+  setInterval(() => { checkIdleTimeout().catch((err) => console.log('[WLED plugin] checkIdleTimeout error:', err)); }, 30000);
+
+  // === Live machine state (push-based, only while this dialog is open) ===
+
+  function resolveDisplayState(ms) {
+    if (!ms) return 'idle';
+    if (ms.isToolChanging || ms.IsToolChanging) return 'tool-changing';
+    if (ms.isProbing || ms.IsProbing) return 'probing';
+    const raw = ms.status || ms.Status || ms.controllerState || ms.ControllerState || ms.state || ms.State || 'Idle';
+    const s = String(raw).toLowerCase();
+    if (s === 'jog') return 'run';
+    if (s === 'home') return 'homing';
+    if (['run', 'hold', 'alarm', 'door', 'check'].includes(s)) return s;
+    return 'idle';
+  }
+
+  function extractXPosition(ms) {
+    const coords = ms && (ms.machineCoords || ms.MachineCoords || ms.machineCoordinates || ms.MPos || ms.mpos);
+    if (!coords) return null;
+    if (typeof coords === 'string') {
+      const parts = coords.split(',').map((p) => Number.parseFloat(p.trim()));
+      return Number.isFinite(parts[0]) ? parts[0] : null;
+    }
+    if (Array.isArray(coords)) return Number.isFinite(coords[0]) ? coords[0] : null;
+    if (typeof coords === 'object' && Number.isFinite(coords.x)) return coords.x;
+    return null;
+  }
+
+  async function getXMaxTravel() {
+    if (settings.xMaxOverride && settings.xMaxOverride > 0) return settings.xMaxOverride;
+    if (cachedXMax) return cachedXMax;
+    try {
+      const res = await fetch(BASE_URL + '/api/firmware');
+      if (res.ok) {
+        const data = await res.json();
+        const setting130 = data && data.settings && data.settings['130'];
+        const value = setting130 ? parseFloat(setting130.value) : null;
+        if (value && value > 0) cachedXMax = value;
+      }
+    } catch (_) { /* ignore, fall back to null */ }
+    return cachedXMax;
+  }
+
+  function computeFollowerIndex(ratio, settings) {
+    if (settings.xFollowInvert) ratio = 1 - ratio;
+    const ledCount = Math.max(1, settings.ledCount || 30);
+    const startOffset = Math.max(0, settings.followerStartOffset || 0);
+    const endOffset = Math.max(0, settings.followerEndOffset || 0);
+    const usableStart = Math.min(ledCount - 1, startOffset);
+    const usableEnd = Math.max(usableStart, ledCount - 1 - endOffset);
+    return Math.round(usableStart + ratio * (usableEnd - usableStart));
+  }
+
+  async function handleMachineState(ms) {
+    if (!ms || celebrating) return;
+
+    // Merge this partial/full snapshot into what we already knew, so a
+    // position-only message doesn't wipe out the last known status (or
+    // vice versa).
+    lastKnownMachineState = Object.assign({}, lastKnownMachineState, ms);
+    const merged = lastKnownMachineState;
+
+    const state = resolveDisplayState(merged);
+    console.log('[WLED plugin] merged state:', merged, '-> resolved display state:', state);
+    trackIdleTiming(state);
+    let followerIndex = null;
+    if (settings.xFollowEnabled) {
+      const x = extractXPosition(merged);
+      if (typeof x === 'number') {
+        const xMax = await getXMaxTravel();
+        if (xMax) {
+          const ratio = Math.max(0, Math.min(1, Math.abs(x) / xMax));
+          followerIndex = computeFollowerIndex(ratio, settings);
+        }
+      }
+    }
+
+    liveStateTextEl.textContent = 'Live status: ' + state + (followerIndex != null ? ' (LED ' + followerIndex + ')' : '');
+    liveStateDotEl.style.background = STATE_DOT_COLORS[state] || '#8a8a8a';
+
+    console.log('[WLED plugin] state check: current=', state, 'lastDisplayState=', lastDisplayState, 'followerIndex=', followerIndex);
+    if (state !== lastDisplayState || followerIndex !== null) {
+      console.log('[WLED plugin] state changed, calling applyColor');
+      lastDisplayState = state;
+      await applyColor(state, followerIndex);
+    }
+
+    // Best-effort job-completion detection from whatever job status field
+    // is present. Only fires the celebration on a running -> completed edge.
+    const jobStatus = (merged.jobLoaded && merged.jobLoaded.status) || merged.jobStatus || merged.senderStatus || null;
+    if (jobStatus) {
+      if (lastJobStatus === 'running' && jobStatus === 'completed') {
+        playCompletionEffect();
+      }
+      lastJobStatus = jobStatus;
+    }
+  }
+
+  function flattenStatePayload(payload) {
+    if (!payload || typeof payload !== 'object') return {};
+    const nested = payload.machineState || payload.MachineState || {};
+    return Object.assign({}, payload, nested);
+  }
+
+  window.addEventListener('message', function (event) {
+    console.log('[WLED plugin] raw message event received:', event.data);
+    if (!event.data) return;
+    const type = event.data.type;
+    if (type !== 'server-state-updated' && type !== 'server-state-update') return;
+    const raw = event.data.data || event.data.state;
+    const flat = flattenStatePayload(raw);
+    console.log('[WLED plugin] matched server-state message, flattened:', flat);
+    handleMachineState(flat);
+  });
+
+  // === Wiring ===
+
+  getInput('saveBtn').addEventListener('click', saveSettings);
+  getInput('addSecondaryHostBtn').addEventListener('click', () => addSecondaryHostRow(''));
+  getInput('testBtn').addEventListener('click', testFlash);
+  getInput('closeBtn').addEventListener('click', function () {
+    window.postMessage({ type: 'close-plugin-dialog' }, '*');
+  });
+
+  populateForm();
+
+  fetch(BASE_URL + '/api/server-state')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((s) => { if (s) handleMachineState(flattenStatePayload(s)); })
+    .catch(() => {});
+})();
+</script>
