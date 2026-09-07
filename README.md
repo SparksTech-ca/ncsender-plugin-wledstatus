@@ -1,6 +1,6 @@
 # WLED Status Light
 
-**Version 1.0.10**
+**Version 1.0.11**
 
 An ncSender plugin that mirrors your CNC machine's status to a
 [WLED](https://kno.wled.ge/)-based RGB LED controller, using WLED's local

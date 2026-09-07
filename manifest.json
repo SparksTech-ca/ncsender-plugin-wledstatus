@@ -1,7 +1,7 @@
 {
   "id": "com.sparkstech.wledstatus",
   "name": "WLED Status Light",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "minAppVersion": "2.0.88",
   "commands": "commands.js",
   "configUi": "config.html",
