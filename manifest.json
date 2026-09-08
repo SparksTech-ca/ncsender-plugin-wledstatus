@@ -9,11 +9,12 @@
   "description": "Mirrors CNC machine status to a WLED-based RGB LED controller over its local HTTP JSON API.",
   "category": "utility",
   "icon": "icon.png",
-  "repository": "",
+  "repository": "https://github.com/SparksTech-ca/ncsender-plugin-wledstatus",
   "priority": 20,
   "platforms": {
-    "v2": "2.0.88",
-    "pro-v2": "2.0.149"
+    "v1": "0.3.111",
+    "pro-v1": "0.3.111",
+    "pro-v2": "2.0.0"
   },
   "toolMenu": [
     { "id": "open-config", "label": "WLED Status Light", "icon": "icon.png", "clientOnly": true }
