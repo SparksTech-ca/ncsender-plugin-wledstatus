@@ -1,7 +1,7 @@
 {
   "id": "com.sparkstech.wledstatus",
   "name": "WLED Status Light",
-  "version": "1.0.11",
+  "version": "1.4.2",
   "minAppVersion": "2.0.88",
   "commands": "commands.js",
   "configUi": "config.html",
@@ -12,9 +12,7 @@
   "repository": "https://github.com/SparksTech-ca/ncsender-plugin-wledstatus",
   "priority": 20,
   "platforms": {
-    "v1": "0.3.111",
-    "pro-v1": "0.3.111",
-    "pro-v2": "2.0.0"
+    "pro-v2": "2.0.88"
   },
   "toolMenu": [
     { "id": "open-config", "label": "WLED Status Light", "icon": "icon.png", "clientOnly": true }

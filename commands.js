@@ -9,6 +9,7 @@
  */
 
 const ALLOWED_EFFECTS = ['fireworks', 'chase', 'theaterchase', 'colorloop', 'strobe'];
+const ALLOWED_FILL_STYLES = ['gradient', 'solid'];
 const STATES = ['idle', 'homing', 'run', 'hold', 'alarm', 'door', 'check', 'probing', 'tool-changing'];
 
 const DEFAULT_COLORS = {
@@ -37,11 +38,26 @@ function sanitizeColor(value, fallback) {
   };
 }
 
+function sanitizeHostEntry(entry) {
+  // Backward-compatible with configs saved before instances had names,
+  // where secondaryWledHosts was just an array of plain host strings.
+  if (typeof entry === 'string') {
+    return { host: entry.trim(), name: '' };
+  }
+  if (entry && typeof entry === 'object') {
+    return {
+      host: typeof entry.host === 'string' ? entry.host.trim() : '',
+      name: typeof entry.name === 'string' ? entry.name.trim() : ''
+    };
+  }
+  return { host: '', name: '' };
+}
+
 function sanitizeHostList(value) {
   if (!Array.isArray(value)) return [];
   return value
-    .map((h) => (typeof h === 'string' ? h.trim() : ''))
-    .filter((h) => h.length > 0)
+    .map(sanitizeHostEntry)
+    .filter((entry) => entry.host.length > 0)
     .slice(0, 10);
 }
 
@@ -55,6 +71,7 @@ function buildInitialConfig(raw) {
 
   return {
     wledHost: typeof source.wledHost === 'string' ? source.wledHost.trim() : '',
+    primaryName: typeof source.primaryName === 'string' ? source.primaryName.trim() : '',
     secondaryWledHosts: sanitizeHostList(source.secondaryWledHosts),
     brightness: Math.min(255, Math.max(1, Math.round(toFiniteNumber(source.brightness, 255)))),
     idleOffMinutes: Math.min(1440, Math.max(0, Math.round(toFiniteNumber(source.idleOffMinutes, 0)))),
@@ -62,12 +79,24 @@ function buildInitialConfig(raw) {
     completionDurationSec: Math.min(60, Math.max(1, Math.round(toFiniteNumber(source.completionDurationSec, 6)))),
     xFollowEnabled: !!source.xFollowEnabled,
     xFollowInvert: !!source.xFollowInvert,
+    // Defaults to the primary host for backward compatibility with configs
+    // saved before this was a separate, redirectable picker.
+    followerHost: typeof source.followerHost === 'string' && source.followerHost.trim()
+      ? source.followerHost.trim()
+      : (typeof source.wledHost === 'string' ? source.wledHost.trim() : ''),
     ledCount: Math.min(1000, Math.max(1, Math.round(toFiniteNumber(source.ledCount, 30)))),
-    followerStartOffset: Math.max(0, Math.round(toFiniteNumber(source.followerStartOffset, 0))),
-    followerEndOffset: Math.max(0, Math.round(toFiniteNumber(source.followerEndOffset, 0))),
+    followerPositionOffsetMm: toFiniteNumber(source.followerPositionOffsetMm, 0),
     followerWidth: Math.min(20, Math.max(1, Math.round(toFiniteNumber(source.followerWidth, 1)))),
     followerColor: sanitizeColor(source.followerColor, { r: 255, g: 255, b: 255 }),
     xMaxOverride: source.xMaxOverride ? toFiniteNumber(source.xMaxOverride, null) : null,
+    jobProgressEnabled: !!source.jobProgressEnabled,
+    jobProgressHost: typeof source.jobProgressHost === 'string' ? source.jobProgressHost.trim() : '',
+    jobProgressLedCount: Math.min(1000, Math.max(1, Math.round(toFiniteNumber(source.jobProgressLedCount, 30)))),
+    jobProgressInvert: !!source.jobProgressInvert,
+    jobProgressFillStyle: ALLOWED_FILL_STYLES.includes(source.jobProgressFillStyle) ? source.jobProgressFillStyle : 'gradient',
+    jobProgressStartColor: sanitizeColor(source.jobProgressStartColor, { r: 255, g: 0, b: 0 }),
+    jobProgressEndColor: sanitizeColor(source.jobProgressEndColor, { r: 0, g: 255, b: 0 }),
+    jobProgressBackgroundColor: sanitizeColor(source.jobProgressBackgroundColor, { r: 0, g: 0, b: 0 }),
     colors
   };
 }
