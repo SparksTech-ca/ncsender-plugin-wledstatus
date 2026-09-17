@@ -1,29 +1,34 @@
 <style>
-  * { box-sizing: border-box; }
-  body {
-    font-family: system-ui, sans-serif;
-    padding: 0;
-    margin: 0;
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-  }
-
-  /* This plugin renders its own sidebar + footer chrome, so the host's
-     generic dialog header/padding would just be redundant framing around
-     it - hide it while this content is mounted. */
-  .plugin-dialog-header { display: none !important; }
-  .plugin-dialog-content { padding: 0 !important; }
+  /* Everything is scoped under .wp-wrapper so we don't restyle the host
+     app's background DOM while this dialog is mounted. The host injects
+     this markup into its own document (not an iframe), so an unscoped
+     `body { ... }` or `* { ... }` leaks out and shifts things around. */
 
   .wp-wrapper {
-    width: 1000px; max-width: 95vw;
-    height: 85vh; max-height: 85vh;
+    box-sizing: border-box;
+    width: 953px;
+    max-width: 95vw;
+    height: 85vh;
     display: flex; flex-direction: column;
     background: var(--color-surface);
+    color: var(--color-text-primary);
+    font-family: system-ui, sans-serif;
     border-radius: var(--radius-medium, 10px);
     overflow: hidden;
   }
+  .wp-wrapper *,
+  .wp-wrapper *::before,
+  .wp-wrapper *::after {
+    box-sizing: border-box;
+  }
+
+  /* Hide the host's generic dialog chrome - this plugin owns the whole frame. */
+  .plugin-dialog-header { display: none !important; }
+  .plugin-dialog-content { padding: 0 !important; }
+
   .wp-body { display: flex; flex-direction: row; flex: 1; min-height: 0; }
 
+  /* ============ Sidebar ============ */
   .wp-sidebar {
     display: flex; flex-direction: column; flex-shrink: 0;
     width: 220px;
@@ -35,7 +40,8 @@
   }
   .wp-sidebar-header {
     display: flex; flex-direction: column; gap: 2px;
-    padding: 0 12px 18px; margin-bottom: 12px; border-bottom: 1px solid var(--color-border);
+    padding: 0 12px 18px; margin-bottom: 12px;
+    border-bottom: 1px solid var(--color-border);
   }
   .wp-sidebar-eyebrow {
     font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
@@ -48,21 +54,34 @@
   .wp-sidebar-nav { display: flex; flex-direction: column; gap: 6px; }
   .wp-nav-btn {
     -webkit-appearance: none; appearance: none;
-    display: flex; align-items: center; gap: 10px;
+    display: flex; align-items: center; gap: 14px;
     padding: 12px 14px;
-    background: transparent !important; border: none !important; border-radius: 8px !important;
+    background: transparent !important; border: none !important;
+    border-radius: 8px !important;
     color: var(--color-text-secondary) !important; cursor: pointer;
     transition: background 0.15s ease, color 0.15s ease;
     font-size: 0.95rem; font-weight: 500; font-family: inherit;
-    width: 100%; text-align: left; position: relative; outline: none; box-shadow: none;
-    line-height: 1.2; margin: 0;
+    width: 100%; text-align: left; position: relative; outline: none;
+    box-shadow: none; line-height: 1.2; margin: 0;
   }
-  .wp-nav-icon { font-size: 1rem; width: 20px; text-align: center; flex-shrink: 0; opacity: 0.85; }
-  .wp-nav-label { flex: 1; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .wp-nav-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 20px; height: 20px;
+    color: var(--color-text-secondary);
+    opacity: 0.75; flex-shrink: 0;
+    transition: color 0.15s ease, opacity 0.15s ease;
+  }
+  .wp-nav-icon svg { display: block; width: 18px; height: 18px; }
+  .wp-nav-label {
+    flex: 1; font-weight: 500;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
   .wp-nav-btn:hover {
     background: color-mix(in srgb, var(--color-text-primary, #fff) 5%, transparent) !important;
-    color: var(--color-text-primary) !important; filter: none !important;
+    color: var(--color-text-primary) !important;
+    filter: none !important;
   }
+  .wp-nav-btn:hover .wp-nav-icon { color: var(--color-accent); opacity: 1; }
   .wp-nav-btn.active {
     background: linear-gradient(90deg,
       color-mix(in srgb, var(--color-accent) 16%, transparent) 0%,
@@ -70,6 +89,7 @@
     color: var(--color-text-primary) !important; font-weight: 600;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 22%, transparent) !important;
   }
+  .wp-nav-btn.active .wp-nav-icon { color: var(--color-accent); opacity: 1; }
   .wp-nav-btn.active .wp-nav-label { font-weight: 600; }
   .wp-tab-caret {
     width: 6px; height: 6px; border-radius: 999px; background: var(--color-accent);
@@ -79,47 +99,47 @@
   .wp-nav-btn.active .wp-tab-caret { display: block; }
 
   .wp-sidebar-footer {
-    margin-top: auto; padding-top: 14px; border-top: 1px solid var(--color-border);
+    margin-top: auto; padding-top: 14px;
+    border-top: 1px solid var(--color-border);
     display: flex; justify-content: center;
   }
-  .wp-close-btn {
-    -webkit-appearance: none; appearance: none;
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    min-width: 130px; min-height: 44px; padding: 12px 32px;
-    background: var(--gradient-accent, var(--color-accent)) !important; color: #fff !important;
-    cursor: pointer; transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
-    font-size: 0.95rem; font-weight: 600; font-family: inherit; letter-spacing: 0.01em;
-    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-accent) 25%, transparent) !important;
-    border-radius: 8px !important; border: none !important; outline: none; line-height: 1.2; margin: 0;
-  }
-  .wp-close-btn:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
-  }
-  .wp-close-btn:active { transform: translateY(1px); }
 
+  /* ============ Pages ============ */
   .wp-pages { flex: 1; min-height: 0; display: flex; flex-direction: column; }
   .wp-page { display: none; flex-direction: column; flex: 1; min-height: 0; }
   .wp-page.active { display: flex; }
-  .wp-page-header { flex-shrink: 0; padding: 16px 20px 12px; border-bottom: 1px solid var(--color-border); }
-  .wp-page-title { font-size: 1rem; font-weight: 700; margin: 0; }
-  .wp-page-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 20px 20px; }
 
-  /* Jog/DRO cluster on the Connection page */
+  .wp-page-header {
+    flex-shrink: 0;
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .wp-page-title { font-size: 1.05rem; font-weight: 700; margin: 0; }
+
+  .wp-page-scroll {
+    flex: 1; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 16px;
+    padding: 16px 20px 20px;
+  }
+
+  /* ============ Header cards (DRO + jog) ============ */
   .wp-header-cards {
     display: grid;
-    grid-template-columns: minmax(0, 230px) minmax(0, 380px) minmax(0, 110px);
+    grid-template-columns: minmax(0, 230px) minmax(0, 380px);
     gap: 12px; justify-content: start; margin-top: 14px;
   }
   .wp-header-card {
     display: flex; align-items: center; justify-content: center;
-    padding: 12px 16px; background: var(--color-surface-muted, rgba(255,255,255,0.03));
-    border: 1px solid var(--color-border); border-radius: 10px; min-height: 168px;
+    padding: 12px 16px;
+    background: var(--color-surface-muted, rgba(255,255,255,0.03));
+    border: 1px solid var(--color-border); border-radius: 10px;
+    min-height: 168px;
   }
   .wp-dro { width: 100%; }
   .wp-dro-title {
     font-size: 0.8rem; font-weight: 700; color: var(--color-text-secondary);
-    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; text-align: center;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 8px; text-align: center;
   }
   .wp-dro-status {
     display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -128,7 +148,8 @@
   .wp-dro-row { display: flex; flex-direction: column; gap: 6px; }
   .wp-dro-cell {
     display: grid; grid-template-columns: 34px 1fr; align-items: stretch;
-    border: 1px solid var(--color-border); border-radius: 8px; overflow: hidden; background: var(--color-surface);
+    border: 1px solid var(--color-border); border-radius: 8px;
+    overflow: hidden; background: var(--color-surface);
   }
   .wp-dro-axis {
     display: inline-flex; align-items: center; justify-content: center; padding: 7px 0;
@@ -139,10 +160,15 @@
   }
   .wp-dro-value {
     display: inline-flex; align-items: center; justify-content: flex-end; padding: 7px 12px;
-    font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace; font-size: 1.05rem; font-weight: 600;
-    font-variant-numeric: tabular-nums; color: var(--color-accent); line-height: 1; text-align: right;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+    font-size: 1.05rem; font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--color-accent); line-height: 1; text-align: right;
   }
-  .wp-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-secondary); flex-shrink: 0; }
+  .wp-status-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--color-text-secondary); flex-shrink: 0;
+  }
 
   .wp-jog-controls {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -150,117 +176,247 @@
   }
   .wp-jog-controls nc-step-control,
   .wp-jog-controls nc-jog-control {
-    display: flex; justify-content: center; transform: scale(1.05); transform-origin: center; margin: 4px 0;
+    display: flex; justify-content: center;
+    transform: scale(1.05); transform-origin: center; margin: 4px 0;
   }
 
-  .wp-home-card { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-  .wp-home-btn {
-    width: 100%; border-radius: 8px; border: 1px solid var(--color-border) !important;
-    background: rgba(255, 255, 255, 0.03) !important; color: var(--color-text-primary) !important;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4px; padding: 14px 6px !important; cursor: pointer; transition: all 0.15s;
-  }
-  .wp-home-btn:hover { border-color: var(--color-accent) !important; }
-  .wp-home-btn .home-icon { font-size: 1.4rem; line-height: 1; }
-  .wp-home-btn .home-label { font-size: 0.85rem; font-weight: 700; }
-  .wp-home-btn .home-hint { font-size: 0.68rem; color: var(--color-text-secondary); }
-
-  .warn-box {
+  /* ============ Warning / info banner ============ */
+  .wp-wrapper .warn-box {
     display: flex; gap: 10px; align-items: flex-start;
-    background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.5);
-    border-radius: 8px; padding: 12px 14px; font-size: 0.82rem; line-height: 1.45;
-    margin-bottom: 20px;
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 32%, transparent);
+    border-radius: 8px; padding: 12px 14px;
+    font-size: 0.82rem; line-height: 1.45;
+    margin-bottom: 4px;
   }
-  .warn-box .icon { font-size: 1rem; line-height: 1.4; }
+  .wp-wrapper .warn-box.danger {
+    background: color-mix(in srgb, var(--color-danger, #e74c3c) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-danger, #e74c3c) 32%, transparent);
+  }
+  .wp-wrapper .warn-box .icon { font-size: 1rem; line-height: 1.4; }
+  .wp-wrapper .warn-box a { color: var(--color-accent); }
 
-  .card {
-    background: rgba(255, 255, 255, 0.03);
+  /* ============ Cards ============ */
+  .wp-wrapper .card {
+    background: var(--color-surface);
     border: 1px solid var(--color-border);
-    border-radius: 10px;
+    border-radius: var(--radius-medium, 10px);
     padding: 18px 20px;
-    margin-bottom: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
-  .card:last-child { margin-bottom: 0; }
-  .card-title {
-    font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
-    color: var(--color-text-secondary); margin: 0 0 14px 0; display: flex; align-items: center; gap: 8px;
+  .wp-wrapper .card-title {
+    font-size: 1rem; font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0 0 14px 0;
   }
 
-  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
-  .field-grid .span-2 { grid-column: 1 / -1; }
-  .form-group { margin: 0 0 14px 0; }
-  .form-group:last-child { margin-bottom: 0; }
-  label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; }
-
-  input[type="text"], input[type="number"], select {
-    width: 100%; padding: 9px 10px; font-size: 0.88rem;
-    background: rgba(0, 0, 0, 0.18); color: var(--color-text-primary);
-    border: 1px solid var(--color-border); border-radius: 6px;
-    transition: border-color 0.15s;
+  /* ============ Fields ============ */
+  .wp-wrapper .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .wp-wrapper .field-grid .span-2 { grid-column: 1 / -1; }
+  .wp-wrapper .form-group { margin: 0 0 14px 0; }
+  .wp-wrapper .form-group:last-child { margin-bottom: 0; }
+  .wp-wrapper label {
+    display: block; margin-bottom: 6px;
+    font-weight: 600; font-size: 0.82rem;
+    color: var(--color-text-secondary);
+    letter-spacing: 0.02em;
   }
-  input[type="text"]:focus, input[type="number"]:focus, select:focus {
-    outline: none; border-color: var(--color-accent);
-  }
-  input[type="text"]::placeholder, input[type="number"]::placeholder { color: var(--color-text-secondary); opacity: 0.6; }
 
-  /* The native <option> list otherwise falls back to the browser/OS default
-     (light background, dark text) since styling a <select> itself doesn't
-     cascade into its dropdown popup - set these explicitly so the option
-     list stays readable against the dark theme. */
-  select option {
+  /* Borders are strengthened against the text color instead of --color-border,
+     which is deliberately faint. On a card that also uses --color-border, a
+     --color-border input edge disappears. 22% text color reads as a real
+     border in both light and dark themes without being heavy. */
+  .wp-wrapper input[type="text"],
+  .wp-wrapper input[type="number"],
+  .wp-wrapper select {
+    width: 100%; padding: 9px 10px; font-size: 0.9rem;
+    background: var(--color-surface); color: var(--color-text-primary);
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+    border-radius: 8px;
+    font-family: inherit;
+    transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+  }
+  .wp-wrapper input[type="number"] {
+    text-align: right;
+    font-family: 'JetBrains Mono', 'SF Mono', 'Menlo', monospace;
+    font-variant-numeric: tabular-nums;
+    background: var(--color-surface-muted, var(--color-surface));
+  }
+  .wp-wrapper input[type="text"]:focus,
+  .wp-wrapper input[type="number"]:focus,
+  .wp-wrapper select:focus {
+    outline: none;
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+    background: var(--color-surface);
+  }
+  .wp-wrapper input[type="text"]::placeholder,
+  .wp-wrapper input[type="number"]::placeholder {
+    color: var(--color-text-secondary); opacity: 0.6;
+  }
+  .wp-wrapper select:hover,
+  .wp-wrapper input[type="text"]:hover,
+  .wp-wrapper input[type="number"]:hover {
+    border-color: color-mix(in srgb, var(--color-text-primary) 40%, transparent);
+  }
+
+  .wp-wrapper select option {
     background: var(--color-surface, #1a1f28);
     color: var(--color-text-primary, #fff);
   }
-  select option:checked, select option:hover {
+  .wp-wrapper select option:checked,
+  .wp-wrapper select option:hover {
     background: var(--color-accent);
     color: #1a1a1a;
   }
 
-  .checkbox-row {
-    display: flex; align-items: center; gap: 10px; font-weight: 500; font-size: 0.88rem; cursor: pointer;
+  /* ============ Inline field rows ============ */
+  .wp-wrapper .field-inline {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
   }
-  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--color-accent); }
+  .wp-wrapper .field-inline + .field-inline { margin-top: 10px; }
+  .wp-wrapper .field-inline > label:not(.toggle) {
+    font-size: 0.9rem; font-weight: 500;
+    color: var(--color-text-primary);
+    flex: 1; margin: 0;
+  }
 
-  .color-grid { display: flex; flex-wrap: wrap; gap: 16px 22px; }
-  .color-row { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; flex: 0 0 100px; }
-  .color-row label { margin: 0; text-transform: capitalize; font-weight: 500; font-size: 0.82rem; white-space: nowrap; }
-  input[type="color"] {
+  /* ============ Reveal-on-enable feature options ============ */
+  /* Container for a feature's optional settings. Hidden when the parent
+     feature toggle is off, but kept in the DOM so its values still get
+     gathered on save — turning the feature back on restores everything. */
+  .wp-wrapper .feature-options { display: block; }
+  .wp-wrapper .feature-options.hidden { display: none; }
+
+  /* ============ Toggle switch ============ */
+  .wp-wrapper .toggle {
+    position: relative; width: 42px; height: 24px; flex-shrink: 0;
+    margin: 0;
+  }
+  .wp-wrapper .toggle input { opacity: 0; width: 0; height: 0; }
+  .wp-wrapper .toggle-slider {
+    position: absolute; inset: 0;
+    background: var(--color-border);
+    border-radius: 24px; cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .wp-wrapper .toggle-slider::before {
+    content: ""; position: absolute;
+    width: 18px; height: 18px; left: 3px; top: 3px;
+    background: white; border-radius: 50%;
+    transition: transform 0.2s ease;
+  }
+  .wp-wrapper .toggle input:checked + .toggle-slider { background: var(--color-accent); }
+  .wp-wrapper .toggle input:checked + .toggle-slider::before { transform: translateX(18px); }
+
+  /* ============ Color swatches ============ */
+  .wp-wrapper .color-grid { display: flex; flex-wrap: wrap; gap: 16px 22px; }
+  .wp-wrapper .color-row {
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: 6px; flex: 0 0 100px;
+  }
+  .wp-wrapper .color-row label {
+    margin: 0; text-transform: capitalize;
+    font-weight: 500; font-size: 0.82rem; white-space: nowrap;
+    color: var(--color-text-primary);
+  }
+  .wp-wrapper input[type="color"] {
     width: 44px; height: 30px; padding: 0; cursor: pointer;
-    border: 1px solid var(--color-border); border-radius: 5px; background: none;
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+    border-radius: 5px; background: none;
   }
 
-  .hint { font-size: 0.78rem; color: var(--color-text-secondary); margin-top: 5px; line-height: 1.4; }
+  .wp-wrapper .hint {
+    font-size: 0.78rem; color: var(--color-text-secondary);
+    margin-top: 5px; line-height: 1.4;
+  }
 
-  .action-bar {
+  /* ============ Action bar ============ */
+  .wp-wrapper .action-bar {
     flex-shrink: 0;
     display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
     padding: 14px 24px;
     background: var(--color-surface);
     border-top: 1px solid var(--color-border);
   }
-  button {
-    padding: 10px 18px; border: none; border-radius: 7px; cursor: pointer;
-    font-weight: 600; font-size: 0.85rem; transition: filter 0.15s, transform 0.05s;
+  .wp-wrapper button {
+    padding: 10px 18px; border: none; border-radius: 8px; cursor: pointer;
+    font-weight: 600; font-size: 0.85rem;
+    transition: filter 0.15s, transform 0.05s, box-shadow 0.15s;
   }
-  button:active { transform: scale(0.98); }
-  button.primary { background: var(--color-accent); color: #1a1a1a; }
-  button.secondary { background: rgba(255, 255, 255, 0.08); color: var(--color-text-primary); }
-  button:hover { filter: brightness(1.12); }
+  .wp-wrapper button:active { transform: scale(0.98); }
+  .wp-wrapper button.primary { background: var(--color-accent); color: #1a1a1a; }
+  .wp-wrapper button.secondary {
+    background: var(--color-surface-muted, rgba(255, 255, 255, 0.08));
+    color: var(--color-text-primary);
+    border: 1px solid color-mix(in srgb, var(--color-text-primary) 22%, transparent);
+  }
+  .wp-wrapper button.secondary:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+  .wp-wrapper button:hover { filter: brightness(1.08); }
 
-  #status { font-size: 0.82rem; min-height: 1.1em; flex-basis: 100%; }
-  #liveState {
-    font-size: 0.8rem; color: var(--color-text-secondary);
-    display: flex; align-items: center; gap: 6px; flex-basis: 100%;
+  .wp-wrapper button.pill {
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-size: 0.82rem;
   }
-  #liveState .dot {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--color-text-secondary); flex-shrink: 0;
+
+  .wp-wrapper .wp-close-btn {
+    -webkit-appearance: none; appearance: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-width: 130px; min-height: 44px; padding: 12px 32px;
+    background: var(--gradient-accent, var(--color-accent)) !important;
+    color: #fff !important;
+    cursor: pointer;
+    transition: filter 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+    font-size: 0.95rem; font-weight: 600; font-family: inherit; letter-spacing: 0.01em;
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--color-accent) 25%, transparent) !important;
+    border-radius: 8px !important; border: none !important; outline: none;
+    line-height: 1.2; margin: 0;
   }
-  .secondary-host-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .secondary-host-row .secondary-host-name { flex: 0 0 140px; }
-  .secondary-host-row .secondary-host-input { flex: 1; }
-  .secondary-host-row button {
-    padding: 8px 12px; background: rgba(239, 68, 68, 0.15); color: #ef4444; flex-shrink: 0;
+  .wp-wrapper .wp-close-btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-accent) 35%, transparent);
   }
+  .wp-wrapper .wp-close-btn:active { transform: translateY(1px); }
+
+  @keyframes savePulse {
+    0%   { box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent); }
+    50%  { box-shadow: 0 0 24px var(--color-accent), 0 0 40px color-mix(in srgb, var(--color-accent) 60%, transparent); }
+    100% { box-shadow: none; }
+  }
+  .wp-wrapper button.primary.saved {
+    animation: savePulse 1s ease-out;
+  }
+
+  .wp-wrapper #status { font-size: 0.82rem; min-height: 1.1em; flex-basis: 100%; }
+
+  /* ============ Additional-host rows ============ */
+  .wp-wrapper .secondary-host-row {
+    display: flex; gap: 8px; align-items: center; margin-bottom: 8px;
+  }
+  .wp-wrapper .secondary-host-row .secondary-host-name { flex: 0 0 140px; }
+  .wp-wrapper .secondary-host-row .secondary-host-input { flex: 1; }
+  .wp-wrapper .secondary-host-row button {
+    padding: 8px 12px; flex-shrink: 0;
+    background: transparent;
+    color: var(--color-danger, #ef4444);
+    border: 1px solid color-mix(in srgb, var(--color-danger, #ef4444) 40%, transparent);
+    border-radius: 999px;
+    font-size: 0.8rem;
+  }
+  .wp-wrapper .secondary-host-row button:hover {
+    background: color-mix(in srgb, var(--color-danger, #ef4444) 12%, transparent);
+    filter: none;
+  }
+
+  /* Host-app dialog chrome - not ours to scope, only matches while our
+     content is mounted. */
+  .plugin-dialog-header { display: none !important; }
+  .plugin-dialog-content { padding: 0 !important; }
 </style>
 
 <div class="wp-wrapper">
@@ -272,35 +428,74 @@
       </div>
       <nav class="wp-sidebar-nav">
         <button type="button" class="wp-nav-btn active" data-page="connection">
-          <span class="wp-nav-icon">🔌</span><span class="wp-nav-label">Connection</span>
+          <span class="wp-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 2v6"/>
+              <path d="M15 2v6"/>
+              <path d="M6 8h12v3a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8z"/>
+              <path d="M12 17v5"/>
+            </svg>
+          </span>
+          <span class="wp-nav-label">Connection</span>
           <span class="wp-tab-caret" aria-hidden="true"></span>
         </button>
         <button type="button" class="wp-nav-btn" data-page="colors">
-          <span class="wp-nav-icon">🎨</span><span class="wp-nav-label">State Colors</span>
+          <span class="wp-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9"/>
+              <circle cx="9" cy="9" r="1.4" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="9" r="1.4" fill="currentColor" stroke="none"/>
+              <circle cx="9" cy="15" r="1.4" fill="currentColor" stroke="none"/>
+              <circle cx="15" cy="15" r="1.4" fill="currentColor" stroke="none"/>
+            </svg>
+          </span>
+          <span class="wp-nav-label">State Colors</span>
           <span class="wp-tab-caret" aria-hidden="true"></span>
         </button>
         <button type="button" class="wp-nav-btn" data-page="behavior">
-          <span class="wp-nav-icon">✨</span><span class="wp-nav-label">Special Effects</span>
+          <span class="wp-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v3"/>
+              <path d="M12 18v3"/>
+              <path d="M3 12h3"/>
+              <path d="M18 12h3"/>
+              <path d="M5.6 5.6l2.1 2.1"/>
+              <path d="M16.3 16.3l2.1 2.1"/>
+              <path d="M5.6 18.4l2.1-2.1"/>
+              <path d="M16.3 7.7l2.1-2.1"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </span>
+          <span class="wp-nav-label">Special Effects</span>
           <span class="wp-tab-caret" aria-hidden="true"></span>
         </button>
         <button type="button" class="wp-nav-btn" data-page="instances">
-          <span class="wp-nav-icon">📡</span><span class="wp-nav-label">Additional Instances</span>
+          <span class="wp-nav-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.2 7.8a6 6 0 0 1 0 8.4"/>
+              <path d="M7.8 7.8a6 6 0 0 0 0 8.4"/>
+              <path d="M19.1 4.9a10 10 0 0 1 0 14.2"/>
+              <path d="M4.9 4.9a10 10 0 0 0 0 14.2"/>
+            </svg>
+          </span>
+          <span class="wp-nav-label">Additional Instances</span>
           <span class="wp-tab-caret" aria-hidden="true"></span>
         </button>
       </nav>
     </aside>
 
     <div class="wp-pages">
-      <!-- ===================== CONNECTION (+ jog/DRO test area) ===================== -->
+      <!-- ===================== CONNECTION ===================== -->
       <section class="wp-page active" data-page="connection">
-        <div class="wp-page-header">
+        <header class="wp-page-header">
           <h2 class="wp-page-title">Connection</h2>
           <div class="wp-header-cards">
             <div class="wp-header-card">
               <div class="wp-dro">
                 <div class="wp-dro-title">Machine Position</div>
                 <div class="wp-dro-status">
-                  <span class="dot" id="liveStateDot" style="width:7px;height:7px;"></span>
+                  <span class="wp-status-dot" id="liveStateDot"></span>
                   <span id="liveStateText">waiting for machine state...</span>
                 </div>
                 <div class="wp-dro-row">
@@ -316,26 +511,20 @@
                 <nc-jog-control></nc-jog-control>
               </div>
             </div>
-            <div class="wp-header-card wp-home-card">
-              <button type="button" class="wp-home-btn" id="homeBtn" title="Home ($H)">
-                <span class="home-icon">🏠</span>
-                <span class="home-label">Home</span>
-                <span class="home-hint">$H</span>
-              </button>
-            </div>
           </div>
-        </div>
+        </header>
         <div class="wp-page-scroll">
           <div class="warn-box">
             <span class="icon">⚠️</span>
             <span><strong>Known Limitation:</strong> The WLED lights will only update if this dialog is open or if you
             have already installed the WLED Status Bridge — you can download it here:
-            <a href="https://github.com/SparksTech-ca/ncsender-plugin-wledstatus_bridge/" target="_blank" rel="noopener noreferrer" style="color: var(--color-accent);">github.com/SparksTech-ca/ncsender-plugin-wledstatus_bridge</a>.
+            <a href="https://github.com/SparksTech-ca/ncsender-plugin-wledstatus_bridge/" target="_blank" rel="noopener noreferrer">github.com/SparksTech-ca/ncsender-plugin-wledstatus_bridge</a>.
+            The idle auto-off timer is handled by the bridge, so it only runs when the bridge is installed.
             Jog the machine above to test the X-axis follower live.</span>
           </div>
 
           <div class="card">
-            <div class="card-title">💡 Primary WLED Instance</div>
+            <h3 class="card-title">Primary WLED Instance</h3>
             <div class="form-group">
               <label for="primaryName">Instance name (optional)</label>
               <input type="text" id="primaryName" placeholder="e.g. Gantry Strip">
@@ -354,18 +543,21 @@
               <div class="form-group">
                 <label for="idleOffMinutes">Turn off after idle (minutes, 0 = never)</label>
                 <input type="number" id="idleOffMinutes" min="0" max="1440">
+                <div class="hint">Applied by the bridge. Has no effect if the bridge isn't running.</div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ===================== JOB COMPLETION + X-AXIS FOLLOWER ===================== -->
+      <!-- ===================== SPECIAL EFFECTS ===================== -->
       <section class="wp-page" data-page="behavior">
-        <div class="wp-page-header"><h2 class="wp-page-title">Special Effects</h2></div>
+        <header class="wp-page-header">
+          <h2 class="wp-page-title">Special Effects</h2>
+        </header>
         <div class="wp-page-scroll">
           <div class="card">
-            <div class="card-title">🎉 Job Completion</div>
+            <h3 class="card-title">Job Completion</h3>
             <div class="field-grid">
               <div class="form-group">
                 <label for="completionEffect">Effect</label>
@@ -385,96 +577,108 @@
           </div>
 
           <div class="card">
-            <div class="card-title">↔️ X-Axis Follower</div>
-            <div class="form-group">
-              <label class="checkbox-row">
+            <h3 class="card-title">X-Axis Follower</h3>
+            <div class="field-inline">
+              <label for="xFollowEnabled">Show machine X position as a moving cursor</label>
+              <label class="toggle">
                 <input type="checkbox" id="xFollowEnabled">
-                Enable follower (shows machine X position as a moving cursor)
+                <span class="toggle-slider"></span>
               </label>
             </div>
-            <div class="form-group">
-              <label for="followerHost">Show follower on instance</label>
-              <select id="followerHost"></select>
-              <div class="hint">Pick which of your configured instances shows the moving cursor. An instance already assigned to another effect below won't appear here — each instance can only run one exclusive effect at a time.</div>
-            </div>
-            <div class="form-group">
-              <label class="checkbox-row">
-                <input type="checkbox" id="xFollowInvert">
-                Invert direction (cursor moves opposite to raw X position)
-              </label>
-            </div>
-            <div class="field-grid">
-              <div class="form-group">
-                <label for="ledCount">LED count</label>
-                <input type="number" id="ledCount" min="1" max="1000">
-                <div class="hint">Should match the actual physical LED count of whichever instance you picked above.</div>
+
+            <div class="feature-options" id="xFollowOptions">
+              <div class="form-group" style="margin-top: 14px;">
+                <label for="followerHost">Show follower on instance</label>
+                <select id="followerHost"></select>
+                <div class="hint">Pick which of your configured instances shows the moving cursor. An instance already assigned to another effect below won't appear here — each instance can only run one exclusive effect at a time.</div>
               </div>
-              <div class="form-group">
-                <label for="followerWidth">Cursor width (LEDs)</label>
-                <input type="number" id="followerWidth" min="1" max="20">
+              <div class="field-inline">
+                <label for="xFollowInvert">Invert direction (cursor moves opposite to raw X position)</label>
+                <label class="toggle">
+                  <input type="checkbox" id="xFollowInvert">
+                  <span class="toggle-slider"></span>
+                </label>
               </div>
-              <div class="form-group">
-                <label for="followerColor">Cursor color</label>
-                <input type="color" id="followerColor">
-              </div>
-              <div class="form-group">
-                <label for="xMaxOverride">X max travel override (mm)</label>
-                <input type="number" id="xMaxOverride" min="0" step="0.1" placeholder="auto">
-              </div>
-              <div class="form-group">
-                <label for="followerPositionOffsetMm">Position calibration offset (mm)</label>
-                <input type="number" id="followerPositionOffsetMm" step="0.1">
-                <div class="hint">Nudges the whole mapping if the cursor sits consistently ahead of or behind the true spindle position — e.g. if it reads 15mm too far in one direction, enter -15 (or +15) to correct it. Covers any systematic misalignment, whatever the cause (carriage geometry, strip mounting, coordinate origin).</div>
-              </div>
-              <div class="form-group span-2" style="margin-top: -8px;">
-                <div class="hint">Leave the travel override blank to use $130 if available.</div>
+              <div class="field-grid" style="margin-top: 14px;">
+                <div class="form-group">
+                  <label for="ledCount">LED count</label>
+                  <input type="number" id="ledCount" min="1" max="1000">
+                  <div class="hint">Should match the actual physical LED count of whichever instance you picked above.</div>
+                </div>
+                <div class="form-group">
+                  <label for="followerWidth">Cursor width (LEDs)</label>
+                  <input type="number" id="followerWidth" min="1" max="20">
+                </div>
+                <div class="form-group">
+                  <label for="followerColor">Cursor color</label>
+                  <input type="color" id="followerColor">
+                </div>
+                <div class="form-group">
+                  <label for="xMaxOverride">X max travel override (mm)</label>
+                  <input type="number" id="xMaxOverride" min="0" step="0.1" placeholder="auto">
+                </div>
+                <div class="form-group">
+                  <label for="followerPositionOffsetMm">Position calibration offset (mm)</label>
+                  <input type="number" id="followerPositionOffsetMm" step="0.1">
+                  <div class="hint">Nudges the whole mapping if the cursor sits consistently ahead of or behind the true spindle position — e.g. if it reads 15mm too far in one direction, enter -15 (or +15) to correct it. Covers any systematic misalignment, whatever the cause (carriage geometry, strip mounting, coordinate origin).</div>
+                </div>
+                <div class="form-group span-2" style="margin-top: -8px;">
+                  <div class="hint">Leave the travel override blank to use $130 if available.</div>
+                </div>
               </div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-title">📊 Job Progress</div>
-            <div class="form-group">
-              <label class="checkbox-row">
+            <h3 class="card-title">Job Progress</h3>
+            <div class="field-inline">
+              <label for="jobProgressEnabled">Show a fill bar across the strip while a job runs</label>
+              <label class="toggle">
                 <input type="checkbox" id="jobProgressEnabled">
-                Enable job progress bar
+                <span class="toggle-slider"></span>
               </label>
             </div>
-            <div class="form-group">
-              <label for="jobProgressHost">Show progress on instance</label>
-              <select id="jobProgressHost"></select>
-              <div class="hint">Pick one of your configured instances to display the fill bar on. That instance shows the progress bar only while a job is running, and its normal status color the rest of the time. An instance already assigned to the X-axis follower won't appear here.</div>
-            </div>
-            <div class="field-grid">
-              <div class="form-group">
-                <label for="jobProgressLedCount">LED count</label>
-                <input type="number" id="jobProgressLedCount" min="1" max="1000">
-                <div class="hint">Should match the LED count of whichever instance you picked above.</div>
+
+            <div class="feature-options" id="jobProgressOptions">
+              <div class="form-group" style="margin-top: 14px;">
+                <label for="jobProgressHost">Show progress on instance</label>
+                <select id="jobProgressHost"></select>
+                <div class="hint">Pick one of your configured instances to display the fill bar on. That instance shows the progress bar only while a job is running, and its normal status color the rest of the time. An instance already assigned to the X-axis follower won't appear here.</div>
               </div>
-              <div class="form-group">
-                <label for="jobProgressFillStyle">Fill style</label>
-                <select id="jobProgressFillStyle">
-                  <option value="gradient">Gradient (color shifts as it fills)</option>
-                  <option value="solid">Solid (single color)</option>
-                </select>
+              <div class="field-grid">
+                <div class="form-group">
+                  <label for="jobProgressLedCount">LED count</label>
+                  <input type="number" id="jobProgressLedCount" min="1" max="1000">
+                  <div class="hint">Should match the LED count of whichever instance you picked above.</div>
+                </div>
+                <div class="form-group">
+                  <label for="jobProgressFillStyle">Fill style</label>
+                  <select id="jobProgressFillStyle">
+                    <option value="gradient">Gradient (color shifts as it fills)</option>
+                    <option value="solid">Solid (single color)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="jobProgressStartColor">Completed color</label>
+                  <input type="color" id="jobProgressStartColor">
+                  <div class="hint">Fills the portion of the strip already completed.</div>
+                </div>
+                <div class="form-group">
+                  <label for="jobProgressEndColor">Remaining color</label>
+                  <input type="color" id="jobProgressEndColor">
+                  <div class="hint">Fills the portion not yet reached.</div>
+                </div>
+                <div class="form-group">
+                  <label for="jobProgressBlendWidth">Blend width (LEDs)</label>
+                  <input type="number" id="jobProgressBlendWidth" min="1" max="20">
+                  <div class="hint">How many LEDs smoothly transition between completed and remaining color at the boundary. Gradient mode only — solid mode uses a hard cutoff.</div>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="jobProgressStartColor">Start color</label>
-                <input type="color" id="jobProgressStartColor">
-              </div>
-              <div class="form-group">
-                <label for="jobProgressEndColor">End color</label>
-                <input type="color" id="jobProgressEndColor">
-                <div class="hint">Used for gradient fill, and ignored for solid fill (start color is used as the single fill color).</div>
-              </div>
-              <div class="form-group">
-                <label for="jobProgressBackgroundColor">Background color</label>
-                <input type="color" id="jobProgressBackgroundColor">
-              </div>
-              <div class="form-group">
-                <label class="checkbox-row" style="margin-top: 22px;">
+              <div class="field-inline" style="margin-top: 4px;">
+                <label for="jobProgressInvert">Invert fill direction</label>
+                <label class="toggle">
                   <input type="checkbox" id="jobProgressInvert">
-                  Invert fill direction
+                  <span class="toggle-slider"></span>
                 </label>
               </div>
             </div>
@@ -484,7 +688,9 @@
 
       <!-- ===================== STATE COLORS ===================== -->
       <section class="wp-page" data-page="colors">
-        <div class="wp-page-header"><h2 class="wp-page-title">State Colors</h2></div>
+        <header class="wp-page-header">
+          <h2 class="wp-page-title">State Colors</h2>
+        </header>
         <div class="wp-page-scroll">
           <div class="card">
             <div class="color-grid" id="colorGrid"></div>
@@ -494,71 +700,64 @@
 
       <!-- ===================== ADDITIONAL INSTANCES ===================== -->
       <section class="wp-page" data-page="instances">
-        <div class="wp-page-header"><h2 class="wp-page-title">Additional Instances</h2></div>
+        <header class="wp-page-header">
+          <h2 class="wp-page-title">Additional Instances</h2>
+        </header>
         <div class="wp-page-scroll">
           <div class="card">
-            <div class="card-title">🔌 Additional WLED Instances</div>
+            <h3 class="card-title">Additional WLED Instances</h3>
             <div class="hint" style="margin-bottom: 12px;">Extra WLED devices that mirror the same status colors (no X-axis follower) and share the same idle auto-off timer.</div>
             <div id="secondaryHostsList"></div>
-            <button class="secondary" id="addSecondaryHostBtn" type="button" style="margin-top: 8px;">+ Add Instance</button>
+            <button class="secondary pill" id="addSecondaryHostBtn" type="button" style="margin-top: 8px;">+ Add Instance</button>
           </div>
         </div>
       </section>
     </div>
   </div>
 
-  <div class="action-bar">
+  <footer class="action-bar">
     <button class="secondary" id="testBtn">Test Connection (flash white)</button>
     <button class="primary" id="saveBtn">Save</button>
     <button class="secondary" id="closeBtn">Close</button>
     <div id="status"></div>
-  </div>
+  </footer>
 </div>
 
 <script>
 (function () {
-  const initialConfig = __INITIAL_CONFIG__;
-  const FALLBACK_PORT = __SERVER_PORT__;
-  const PLUGIN_ID = 'com.sparkstech.wledstatus';
-  const STATES = ['idle', 'homing', 'run', 'hold', 'alarm', 'door', 'check', 'probing', 'tool-changing'];
+  'use strict';
+
+  // Toggle to true (and rebuild) to see verbose state + WLED traffic logs.
+  // Left off in production because the state handler runs on every server
+  // tick — at high jog rates that's hundreds of lines per second.
+  const DEBUG = false;
+  const log = DEBUG ? console.log.bind(console, '[WLED plugin]') : function () {};
+
+  // =========================================================================
+  // Shared core (mirrors lib/wled-core.js in the bridge repo).
+  // Keep in sync when the bridge's copy changes.
+  // =========================================================================
 
   const EFFECTS = { fireworks: 42, chase: 28, theaterchase: 11, colorloop: 8, strobe: 23 };
-
-  const resolveApiBaseUrl = function () {
-    if (window.ncSender && typeof window.ncSender.getApiBaseUrl === 'function') {
-      return window.ncSender.getApiBaseUrl(FALLBACK_PORT);
-    }
-    return '';
+  const STATES = ['idle', 'homing', 'run', 'hold', 'alarm', 'door', 'check', 'probing', 'tool-changing'];
+  const DEFAULT_STATE_COLORS = {
+    idle: { r: 255, g: 255, b: 255 },
+    homing: { r: 0, g: 100, b: 255 },
+    run: { r: 0, g: 255, b: 0 },
+    hold: { r: 255, g: 220, b: 0 },
+    alarm: { r: 255, g: 0, b: 0 },
+    door: { r: 255, g: 220, b: 0 },
+    check: { r: 0, g: 123, b: 255 },
+    probing: { r: 26, g: 188, b: 156 },
+    'tool-changing': { r: 160, g: 32, b: 240 }
   };
-  const BASE_URL = resolveApiBaseUrl();
-  console.log('[WLED plugin] BASE_URL resolved to:', JSON.stringify(BASE_URL), 'window.ncSender present:', !!window.ncSender);
-
-  const getInput = (id) => document.getElementById(id);
-  const statusEl = getInput('status');
-  const liveStateTextEl = getInput('liveStateText');
-  const liveStateDotEl = getInput('liveStateDot');
-
-  const STATE_DOT_COLORS = {
-    idle: '#8a8a8a', homing: '#00d2ff', run: '#22c55e', hold: '#f59e0b', alarm: '#ef4444',
-    door: '#fd7e14', check: '#3b82f6', probing: '#1abc9c', 'tool-changing': '#c912a8'
-  };
-
-  let settings = initialConfig;
-  let lastDisplayState = null;
-  let celebrating = false;
-  let cachedXMax = null;
-  let lastJobStatus = null;
-
-  // The server only includes `status` on some server-state-updated messages
-  // (e.g. on a real status poll) — messages fired mid-jog often carry just
-  // MPos/WPos with no status field at all. Track both independently and
-  // recompute the display state from whichever pieces we've most recently
-  // seen, rather than expecting one complete snapshot per message.
-  let lastKnownMachineState = {};
+  const FALLBACK_JOB_PROGRESS_START_COLOR = { r: 0, g: 255, b: 0 };
+  const FALLBACK_JOB_PROGRESS_END_COLOR = { r: 255, g: 0, b: 0 };
+  const FALLBACK_FOLLOWER_COLOR = { r: 255, g: 255, b: 255 };
 
   function rgbToHex(c) {
-    if (!c) return '#FFFFFF';
-    const h = (n) => n.toString(16).padStart(2, '0');
+    if (!c || !Number.isFinite(c.r) || !Number.isFinite(c.g) || !Number.isFinite(c.b)) return '#FFFFFF';
+    const h = (n) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0');
     return '#' + h(c.r) + h(c.g) + h(c.b);
   }
   function hexToRgb(hex) {
@@ -569,6 +768,215 @@
       b: parseInt(hex.substring(4, 6), 16)
     };
   }
+  function interpolateColor(c1, c2, t) {
+    return {
+      r: Math.round(c1.r + (c2.r - c1.r) * t),
+      g: Math.round(c1.g + (c2.g - c1.g) * t),
+      b: Math.round(c1.b + (c2.b - c1.b) * t)
+    };
+  }
+  function flattenStatePayload(payload) {
+    if (!payload || typeof payload !== 'object') return {};
+    const nested = payload.machineState || payload.MachineState || {};
+    return Object.assign({}, payload, nested);
+  }
+  function resolveDisplayState(ms, jobStatus) {
+    if (!ms) return 'idle';
+    if (ms.isToolChanging || ms.IsToolChanging) return 'tool-changing';
+    if (ms.isProbing || ms.IsProbing) return 'probing';
+    const raw = ms.status || ms.Status || ms.controllerState || ms.ControllerState || ms.state || ms.State || 'Idle';
+    const s = String(raw).toLowerCase();
+    if (s === 'jog') return 'run';
+    if (s === 'home') return 'homing';
+    if (['run', 'hold', 'alarm', 'door', 'check'].includes(s)) return s;
+    if (s === 'idle' && jobStatus === 'running') return 'run';
+    return 'idle';
+  }
+  function extractCoords(ms) {
+    return (ms && (
+      ms.machineCoords || ms.MachineCoords || ms.machineCoordinates || ms.MPos || ms.mpos
+    )) || null;
+  }
+  function extractXPosition(ms) {
+    const coords = extractCoords(ms);
+    if (!coords) return null;
+    if (typeof coords === 'string') {
+      const parts = coords.split(',').map((p) => Number.parseFloat(p.trim()));
+      return Number.isFinite(parts[0]) ? parts[0] : null;
+    }
+    if (Array.isArray(coords)) return Number.isFinite(coords[0]) ? coords[0] : null;
+    if (typeof coords === 'object' && Number.isFinite(coords.x)) return coords.x;
+    return null;
+  }
+  function extractXYZ(ms) {
+    const coords = extractCoords(ms);
+    if (!coords) return null;
+    if (typeof coords === 'string') {
+      const parts = coords.split(',').map((p) => Number.parseFloat(p.trim()));
+      return { x: parts[0], y: parts[1], z: parts[2] };
+    }
+    if (Array.isArray(coords)) return { x: coords[0], y: coords[1], z: coords[2] };
+    if (typeof coords === 'object') return { x: coords.x, y: coords.y, z: coords.z };
+    return null;
+  }
+  function createSegmentTracker() {
+    const perHost = new Map();
+    return {
+      reconcile(host, desiredSegments) {
+        const desiredIds = new Set(desiredSegments.map((s) => s.id));
+        const prevIds = perHost.get(host) || new Set();
+        const toClear = [];
+        for (const id of prevIds) {
+          if (!desiredIds.has(id)) toClear.push({ id, stop: 0 });
+        }
+        perHost.set(host, desiredIds);
+        return desiredSegments.concat(toClear);
+      },
+      forget(host) {
+        if (host) perHost.delete(host);
+        else perHost.clear();
+      }
+    };
+  }
+  function buildFollowerSegments(bgColor, followerIndex, settings) {
+    const ledCount = Math.max(1, settings.ledCount || 30);
+    if (!settings.xFollowEnabled || followerIndex == null) {
+      return [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] }];
+    }
+    const width = Math.max(1, settings.followerWidth || 3);
+    const halfWidth = Math.floor(width / 2);
+    const start = Math.max(0, Math.min(ledCount - width, followerIndex - halfWidth));
+    const stop = Math.min(ledCount, start + width);
+    const fc = settings.followerColor || FALLBACK_FOLLOWER_COLOR;
+    return [
+      { id: 0, start: 0, stop: ledCount, fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] },
+      { id: 1, start, stop, fx: 0, col: [[fc.r, fc.g, fc.b]] }
+    ];
+  }
+  function buildPlainColorSegments(color, ledCount) {
+    return [{ id: 0, start: 0, stop: Math.max(1, ledCount || 30), fx: 0, col: [[color.r, color.g, color.b]] }];
+  }
+  function buildJobProgressSegments(progressPercent, settings) {
+    const ledCount = Math.max(1, settings.jobProgressLedCount || 30);
+    const ratio = Math.max(0, Math.min(1, (progressPercent || 0) / 100));
+    const completedColor = settings.jobProgressStartColor || FALLBACK_JOB_PROGRESS_START_COLOR;
+    const remainingColor = settings.jobProgressEndColor || FALLBACK_JOB_PROGRESS_END_COLOR;
+    const invert = !!settings.jobProgressInvert;
+    const litCount = Math.max(0, Math.min(ledCount, Math.round(ledCount * ratio)));
+    const blendWidth = settings.jobProgressFillStyle === 'solid'
+      ? 0
+      : Math.max(1, settings.jobProgressBlendWidth || 3);
+
+    if (ratio <= 0) {
+      return { segments: [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [[remainingColor.r, remainingColor.g, remainingColor.b]] }], litCount };
+    }
+    if (ratio >= 1) {
+      return { segments: [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [[completedColor.r, completedColor.g, completedColor.b]] }], litCount };
+    }
+
+    const rawBoundary = ratio * ledCount;
+    const boundary = invert ? ledCount - rawBoundary : rawBoundary;
+    const segments = [];
+    let segId = 0;
+
+    if (blendWidth <= 0) {
+      const roundedBoundary = Math.round(boundary);
+      const doneRange = invert ? [roundedBoundary, ledCount] : [0, roundedBoundary];
+      const remainingRange = invert ? [0, roundedBoundary] : [roundedBoundary, ledCount];
+      if (doneRange[1] > doneRange[0]) {
+        segments.push({ id: segId++, start: doneRange[0], stop: doneRange[1], fx: 0, col: [[completedColor.r, completedColor.g, completedColor.b]] });
+      }
+      if (remainingRange[1] > remainingRange[0]) {
+        segments.push({ id: segId++, start: remainingRange[0], stop: remainingRange[1], fx: 0, col: [[remainingColor.r, remainingColor.g, remainingColor.b]] });
+      }
+      return { segments, litCount };
+    }
+
+    const half = blendWidth / 2;
+    let blendStart = Math.max(0, Math.min(ledCount, Math.floor(boundary - half)));
+    let blendEnd = Math.max(0, Math.min(ledCount, Math.ceil(boundary + half)));
+    if (blendEnd < blendStart) blendEnd = blendStart;
+
+    const doneRange = invert ? [blendEnd, ledCount] : [0, blendStart];
+    const remainingRange = invert ? [0, blendStart] : [blendEnd, ledCount];
+
+    if (doneRange[1] > doneRange[0]) {
+      segments.push({ id: segId++, start: doneRange[0], stop: doneRange[1], fx: 0, col: [[completedColor.r, completedColor.g, completedColor.b]] });
+    }
+    if (remainingRange[1] > remainingRange[0]) {
+      segments.push({ id: segId++, start: remainingRange[0], stop: remainingRange[1], fx: 0, col: [[remainingColor.r, remainingColor.g, remainingColor.b]] });
+    }
+    for (let i = blendStart; i < blendEnd; i++) {
+      const localT = blendEnd > blendStart ? (i - blendStart + 0.5) / (blendEnd - blendStart) : 0;
+      const t = invert ? 1 - localT : localT;
+      const c = interpolateColor(completedColor, remainingColor, t);
+      segments.push({ id: segId++, start: i, stop: i + 1, fx: 0, col: [[c.r, c.g, c.b]] });
+    }
+
+    return { segments, litCount };
+  }
+  function computeFollowerIndex(ratio, settings) {
+    if (settings.xFollowInvert) ratio = 1 - ratio;
+    const ledCount = Math.max(1, settings.ledCount || 30);
+    return Math.round(ratio * (ledCount - 1));
+  }
+  function createJobLoadedTracker() {
+    let current = null;
+    return {
+      merge(source) {
+        if (!Object.prototype.hasOwnProperty.call(source, 'jobLoaded')) return;
+        if (source.jobLoaded === null) {
+          current = null;
+        } else if (source.jobLoaded && typeof source.jobLoaded === 'object') {
+          current = Object.assign({}, current || {}, source.jobLoaded);
+        }
+      },
+      get() { return current; },
+      reset() { current = null; }
+    };
+  }
+
+  // =========================================================================
+  // Plugin-specific code
+  // =========================================================================
+
+  const initialConfig = __INITIAL_CONFIG__;
+  const FALLBACK_PORT = __SERVER_PORT__;
+  const PLUGIN_ID = 'com.sparkstech.wledstatus';
+  const FALLBACK_STATE_COLORS = DEFAULT_STATE_COLORS;
+
+  const resolveApiBaseUrl = function () {
+    if (window.ncSender && typeof window.ncSender.getApiBaseUrl === 'function') {
+      return window.ncSender.getApiBaseUrl(FALLBACK_PORT);
+    }
+    return '';
+  };
+  const BASE_URL = resolveApiBaseUrl();
+
+  const getInput = (id) => document.getElementById(id);
+  const statusEl = getInput('status');
+  const liveStateTextEl = getInput('liveStateText');
+  const liveStateDotEl = getInput('liveStateDot');
+
+  const STATE_DOT_COLORS = {
+    idle: '#8a8a8a', homing: '#0064ff', run: '#22c55e', hold: '#ffdc00', alarm: '#ef4444',
+    door: '#ffdc00', check: '#3b82f6', probing: '#1abc9c', 'tool-changing': '#a020f0'
+  };
+
+  let settings = initialConfig;
+  let lastDisplayState = null;
+  let lastFollowerIndex = null;
+  let celebrating = false;
+  let cachedXMax = null;
+  let lastJobStatus = null;
+
+  let lastKnownMachineState = {};
+  const jobLoaded = createJobLoadedTracker();
+  const segTracker = createSegmentTracker();
+
+  let wledInFlight = false;
+  let pendingApply = null;
+
   function setStatus(msg, isError) {
     statusEl.textContent = msg;
     statusEl.style.color = isError ? '#dc3545' : 'var(--color-text-secondary)';
@@ -614,13 +1022,6 @@
     container.appendChild(row);
   }
 
-  // === Exclusive-effect instance pickers ===
-  // Both the X-axis follower and Job Progress bar are "exclusive" effects -
-  // each takes over the whole strip on whichever instance it's assigned to,
-  // so the same instance can't run two of them at once. Each picker only
-  // offers instances not already claimed by another *enabled* exclusive
-  // effect. Adding a future exclusive effect just means adding an entry
-  // here - the filtering logic itself doesn't need to change.
   const EXCLUSIVE_ROLES = [
     { enabledId: 'xFollowEnabled', hostId: 'followerHost' },
     { enabledId: 'jobProgressEnabled', hostId: 'jobProgressHost' }
@@ -639,11 +1040,6 @@
     return hosts;
   }
 
-  // `overrides` lets populateForm() seed each picker's preferred value from
-  // saved settings before any <option> exists yet (setting .value on an
-  // empty <select> has nothing to match, so it'd otherwise be lost). Live
-  // interaction calls this with no arguments, reading whatever's currently
-  // selected in the DOM instead.
   function refreshInstancePickers(overrides) {
     overrides = overrides || {};
     const allHosts = getAllConfiguredHosts();
@@ -667,38 +1063,49 @@
     });
   }
 
+  // Show/hide the options block under a feature's enable toggle. The inputs
+  // stay in the DOM (and get saved) regardless — they just aren't visible
+  // when the feature is off. Called on load and on every toggle change.
+  function updateFeatureVisibility() {
+    const xOn = getInput('xFollowEnabled').checked;
+    const jpOn = getInput('jobProgressEnabled').checked;
+    getInput('xFollowOptions').classList.toggle('hidden', !xOn);
+    getInput('jobProgressOptions').classList.toggle('hidden', !jpOn);
+  }
+
   function populateForm() {
-    console.log('[WLED plugin] populateForm — settings.colors:', JSON.stringify(settings.colors));
     getInput('wledHost').value = settings.wledHost || '';
     getInput('primaryName').value = settings.primaryName || '';
     getInput('brightness').value = settings.brightness ?? 255;
     getInput('idleOffMinutes').value = settings.idleOffMinutes ?? 0;
-    getInput('completionEffect').value = settings.completionEffect || 'fireworks';
+    getInput('completionEffect').value = settings.completionEffect || 'colorloop';
     getInput('completionDurationSec').value = settings.completionDurationSec ?? 6;
     getInput('xFollowEnabled').checked = !!settings.xFollowEnabled;
     getInput('xFollowInvert').checked = !!settings.xFollowInvert;
     getInput('ledCount').value = settings.ledCount ?? 30;
     getInput('followerPositionOffsetMm').value = settings.followerPositionOffsetMm ?? 0;
-    getInput('followerWidth').value = settings.followerWidth ?? 1;
-    getInput('followerColor').value = rgbToHex(settings.followerColor);
+    getInput('followerWidth').value = settings.followerWidth ?? 3;
+    getInput('followerColor').value = rgbToHex(settings.followerColor || FALLBACK_FOLLOWER_COLOR);
     getInput('xMaxOverride').value = settings.xMaxOverride ?? '';
     getInput('jobProgressEnabled').checked = !!settings.jobProgressEnabled;
     getInput('jobProgressLedCount').value = settings.jobProgressLedCount ?? 30;
     getInput('jobProgressFillStyle').value = settings.jobProgressFillStyle || 'gradient';
-    getInput('jobProgressStartColor').value = rgbToHex(settings.jobProgressStartColor);
-    getInput('jobProgressEndColor').value = rgbToHex(settings.jobProgressEndColor);
-    getInput('jobProgressBackgroundColor').value = rgbToHex(settings.jobProgressBackgroundColor);
+    getInput('jobProgressStartColor').value = rgbToHex(settings.jobProgressStartColor || FALLBACK_JOB_PROGRESS_START_COLOR);
+    getInput('jobProgressEndColor').value = rgbToHex(settings.jobProgressEndColor || FALLBACK_JOB_PROGRESS_END_COLOR);
     getInput('jobProgressInvert').checked = !!settings.jobProgressInvert;
+    getInput('jobProgressBlendWidth').value = settings.jobProgressBlendWidth ?? 3;
     renderSecondaryHostsList();
     refreshInstancePickers({ followerHost: settings.followerHost, jobProgressHost: settings.jobProgressHost });
+    updateFeatureVisibility();
 
     const grid = getInput('colorGrid');
     grid.innerHTML = '';
     STATES.forEach((state) => {
       const row = document.createElement('div');
       row.className = 'color-row';
+      const color = (settings.colors && settings.colors[state]) || FALLBACK_STATE_COLORS[state];
       row.innerHTML = '<label>' + state.replace('-', ' ') + '</label>' +
-        '<input type="color" data-state="' + state + '" value="' + rgbToHex(settings.colors[state]) + '">';
+        '<input type="color" data-state="' + state + '" value="' + rgbToHex(color) + '">';
       grid.appendChild(row);
     });
   }
@@ -708,6 +1115,7 @@
     document.querySelectorAll('#colorGrid input[type=color]').forEach((input) => {
       colors[input.getAttribute('data-state')] = hexToRgb(input.value);
     });
+    const finalColors = Object.keys(colors).length > 0 ? colors : (settings.colors || {});
     const secondaryWledHosts = Array.from(document.querySelectorAll('.secondary-host-row'))
       .map((row) => ({
         host: row.querySelector('.secondary-host-input').value.trim(),
@@ -727,7 +1135,7 @@
       xFollowInvert: getInput('xFollowInvert').checked,
       ledCount: parseInt(getInput('ledCount').value, 10) || 30,
       followerPositionOffsetMm: parseFloat(getInput('followerPositionOffsetMm').value) || 0,
-      followerWidth: parseInt(getInput('followerWidth').value, 10) || 1,
+      followerWidth: parseInt(getInput('followerWidth').value, 10) || 3,
       followerColor: hexToRgb(getInput('followerColor').value),
       xMaxOverride: getInput('xMaxOverride').value ? parseFloat(getInput('xMaxOverride').value) : null,
       jobProgressEnabled: getInput('jobProgressEnabled').checked,
@@ -736,14 +1144,16 @@
       jobProgressFillStyle: getInput('jobProgressFillStyle').value,
       jobProgressStartColor: hexToRgb(getInput('jobProgressStartColor').value),
       jobProgressEndColor: hexToRgb(getInput('jobProgressEndColor').value),
-      jobProgressBackgroundColor: hexToRgb(getInput('jobProgressBackgroundColor').value),
       jobProgressInvert: getInput('jobProgressInvert').checked,
-      colors
+      jobProgressBlendWidth: parseInt(getInput('jobProgressBlendWidth').value, 10) || 3,
+      colors: finalColors
     };
   }
 
   async function saveSettings() {
     settings = gatherFormData();
+    segTracker.forget();
+    const saveBtn = getInput('saveBtn');
     try {
       const res = await fetch(BASE_URL + '/api/plugins/' + PLUGIN_ID + '/settings', {
         method: 'PUT',
@@ -752,60 +1162,33 @@
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       setStatus('Settings saved.', false);
+      saveBtn.classList.remove('saved');
+      void saveBtn.offsetWidth;
+      saveBtn.classList.add('saved');
+      setTimeout(() => saveBtn.classList.remove('saved'), 1100);
+      refreshInstancePickers();
+      if (lastDisplayState) {
+        await queueApplyColor(lastDisplayState, lastFollowerIndex);
+      }
     } catch (err) {
       setStatus('Failed to save settings: ' + (err.message || err), true);
     }
   }
 
-  // === Machine control (Home button) ===
-  // Uses ncSender's own command endpoint - same one the app's built-in jog
-  // panel and other plugins use - not WLED communication.
-
-  async function sendGcode(command, displayCommand) {
-    const res = await fetch(BASE_URL + '/api/send-command', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        command,
-        displayCommand: displayCommand || command,
-        commandId: 'wledstatus-' + Date.now() + '-' + Math.random().toString(16).slice(2),
-        meta: { sourceId: 'wledstatus-plugin' }
-      })
-    });
-    let data = null;
-    try { data = await res.json(); } catch (_) { /* ignore */ }
-    if (!res.ok || !data) throw new Error('Command failed: ' + command);
-    if (data.status === 'error') {
-      throw new Error((data.error && (data.error.message || data.error)) || data.errorMessage || ('Controller rejected: ' + command));
-    }
-  }
-
-  async function homeMachine() {
-    try {
-      setStatus('Homing...', false);
-      await sendGcode('$H', '$H (Home)');
-      setStatus('Homing command sent.', false);
-    } catch (err) {
-      setStatus('Homing failed: ' + (err.message || err), true);
-    }
-  }
-  getInput('homeBtn').addEventListener('click', homeMachine);
-
   // === WLED communication ===
 
   async function sendToHost(host, body) {
     if (!host) return false;
-    console.log('[WLED plugin] sendToHost -> host:', host, 'body:', JSON.stringify(body));
     try {
       const res = await fetch('http://' + host + '/json/state', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body)
       });
-      console.log('[WLED plugin] sendToHost response status:', host, res.status, res.ok);
+      log('sendToHost', host, res.status);
       return res.ok;
     } catch (err) {
-      console.log('[WLED plugin] sendToHost threw:', host, err);
+      log('sendToHost threw', host, err);
       setStatus('WLED request to ' + host + ' failed (check host/CORS): ' + (err.message || err), true);
       return false;
     }
@@ -821,91 +1204,60 @@
     return hosts;
   }
 
-  function buildSegments(bgColor, followerIndex) {
-    if (!settings.xFollowEnabled || followerIndex == null) {
-      return [{ fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] }];
-    }
-
-    const width = Math.max(1, settings.followerWidth || 1);
-    const ledCount = Math.max(1, settings.ledCount || 30);
-    // Center the cursor on followerIndex rather than starting there.
-    const halfWidth = Math.floor(width / 2);
-    const start = Math.max(0, Math.min(ledCount - width, followerIndex - halfWidth));
-    const stop = Math.min(ledCount, start + width);
-    const fc = settings.followerColor || { r: 255, g: 255, b: 255 };
-
-    return [
-      { id: 0, start: 0, stop: ledCount, fx: 0, col: [[bgColor.r, bgColor.g, bgColor.b]] },
-      { id: 1, start, stop, fx: 0, col: [[fc.r, fc.g, fc.b]] }
-    ];
-  }
-
   // === Job progress bar ===
-  // The job progress host shows the normal status color, like a secondary
-  // instance, EXCEPT while a job is actively running - then it switches to
-  // a fill bar instead. jobProgressActive tracks which mode it's currently
-  // in, so applyColor() knows whether to skip sending status color to it.
 
   let jobProgressActive = false;
   let lastJobProgressLit = null;
 
-  function interpolateColor(c1, c2, t) {
-    return {
-      r: Math.round(c1.r + (c2.r - c1.r) * t),
-      g: Math.round(c1.g + (c2.g - c1.g) * t),
-      b: Math.round(c1.b + (c2.b - c1.b) * t)
-    };
-  }
-
-  function buildJobProgressSegments(progressPercent) {
-    const ledCount = Math.max(1, settings.jobProgressLedCount || 30);
-    const ratio = Math.max(0, Math.min(1, (progressPercent || 0) / 100));
-    const litCount = Math.max(0, Math.min(ledCount, Math.round(ledCount * ratio)));
-    const bg = settings.jobProgressBackgroundColor || { r: 0, g: 0, b: 0 };
-    const startColor = settings.jobProgressStartColor || { r: 255, g: 0, b: 0 };
-    const endColor = settings.jobProgressEndColor || { r: 0, g: 255, b: 0 };
-    const fillColor = settings.jobProgressFillStyle === 'solid' ? startColor : interpolateColor(startColor, endColor, ratio);
-
-    const segments = [{ id: 0, start: 0, stop: ledCount, fx: 0, col: [[bg.r, bg.g, bg.b]] }];
-    if (litCount > 0) {
-      const start = settings.jobProgressInvert ? ledCount - litCount : 0;
-      const stop = settings.jobProgressInvert ? ledCount : litCount;
-      segments.push({ id: 1, start, stop, fx: 0, col: [[fillColor.r, fillColor.g, fillColor.b]] });
-    }
-    return { segments, litCount };
-  }
-
   async function applyJobProgress(progressPercent) {
     const host = (settings.jobProgressHost || '').trim();
     if (!host) return;
-    const { segments } = buildJobProgressSegments(progressPercent);
-    await sendToHost(host, { on: true, bri: settings.brightness ?? 255, seg: segments });
+    const { segments } = buildJobProgressSegments(progressPercent, settings);
+    const finalSegments = segTracker.reconcile(host, segments);
+    await sendToHost(host, { on: true, bri: settings.brightness ?? 255, seg: finalSegments });
   }
 
-  // Applies the current state color to every configured host. Each host's
-  // treatment depends on which exclusive role (if any) it's currently
-  // assigned to: the follower host gets the cursor segments, the job
-  // progress host gets skipped here entirely while a job is actively
-  // showing its fill bar (applyJobProgress owns it during that window),
-  // and every other host just gets the plain background color.
   async function applyColor(state, followerIndex) {
-    const color = (settings.colors && settings.colors[state]) || { r: 255, g: 255, b: 255 };
+    const color = (settings.colors && settings.colors[state]) || FALLBACK_STATE_COLORS[state] || { r: 255, g: 255, b: 255 };
     const brightness = settings.brightness ?? 255;
-    console.log('[WLED plugin] applyColor -> state:', state, 'color:', JSON.stringify(color), 'followerIndex:', followerIndex);
-
     const followerHost = (settings.followerHost || settings.wledHost || '').trim();
     const jobProgressHost = (settings.jobProgressHost || '').trim();
 
     const tasks = getAllHosts().map((host) => {
       if (settings.xFollowEnabled && host === followerHost) {
-        return sendToHost(host, { on: true, bri: brightness, seg: buildSegments(color, followerIndex) });
+        const desired = buildFollowerSegments(color, followerIndex, settings);
+        return sendToHost(host, { on: true, bri: brightness, seg: segTracker.reconcile(host, desired) });
       }
       if (settings.jobProgressEnabled && host === jobProgressHost && jobProgressActive) {
-        return Promise.resolve(true); // job progress owns this host right now
+        return Promise.resolve(true);
       }
-      return sendToHost(host, { on: true, bri: brightness, seg: [{ fx: 0, col: [[color.r, color.g, color.b]] }] });
+      const ledCount = host === followerHost
+        ? (settings.ledCount || 30)
+        : host === jobProgressHost
+          ? (settings.jobProgressLedCount || 30)
+          : undefined;
+      const desired = buildPlainColorSegments(color, ledCount);
+      return sendToHost(host, { on: true, bri: brightness, seg: segTracker.reconcile(host, desired) });
     });
     await Promise.all(tasks);
+  }
+
+  async function queueApplyColor(state, followerIndex) {
+    if (wledInFlight) {
+      pendingApply = { state, followerIndex };
+      return;
+    }
+    wledInFlight = true;
+    try {
+      await applyColor(state, followerIndex);
+    } finally {
+      wledInFlight = false;
+      if (pendingApply) {
+        const next = pendingApply;
+        pendingApply = null;
+        queueApplyColor(next.state, next.followerIndex);
+      }
+    }
   }
 
   async function playCompletionEffect() {
@@ -913,12 +1265,16 @@
     const durationMs = (settings.completionDurationSec ?? 6) * 1000;
     const brightness = settings.brightness ?? 255;
     celebrating = true;
-    const body = { on: true, bri: brightness, seg: [{ fx, sx: 180, ix: 200 }] };
-    await Promise.all(getAllHosts().map((host) => sendToHost(host, body)));
+    const tasks = getAllHosts().map((host) => {
+      const desired = [{ id: 0, fx, sx: 180, ix: 200 }];
+      return sendToHost(host, { on: true, bri: brightness, seg: segTracker.reconcile(host, desired) });
+    });
+    await Promise.all(tasks);
     setTimeout(async () => {
       celebrating = false;
       lastDisplayState = 'idle';
-      await applyColor('idle', null);
+      lastFollowerIndex = null;
+      await queueApplyColor('idle', null);
     }, durationMs);
   }
 
@@ -926,90 +1282,26 @@
     const bri = settings.brightness ?? 255;
     const hosts = getAllHosts();
     for (let i = 0; i < 3; i++) {
-      await Promise.all(hosts.map((h) => sendToHost(h, { on: true, bri, seg: [{ fx: 0, col: [[255, 255, 255]] }] })));
+      await Promise.all(hosts.map((h) => {
+        const desired = [{ id: 0, fx: 0, col: [[255, 255, 255]] }];
+        return sendToHost(h, { on: true, bri, seg: segTracker.reconcile(h, desired) });
+      }));
       await new Promise((r) => setTimeout(r, 300));
-      await Promise.all(hosts.map((h) => sendToHost(h, { on: true, bri, seg: [{ fx: 0, col: [[0, 0, 0]] }] })));
+      await Promise.all(hosts.map((h) => {
+        const desired = [{ id: 0, fx: 0, col: [[0, 0, 0]] }];
+        return sendToHost(h, { on: true, bri, seg: segTracker.reconcile(h, desired) });
+      }));
       await new Promise((r) => setTimeout(r, 300));
     }
-    if (lastDisplayState) await applyColor(lastDisplayState, null);
+    if (lastDisplayState) await queueApplyColor(lastDisplayState, lastFollowerIndex);
     setStatus('Test flash sent to ' + hosts.length + ' instance(s).', false);
   }
 
-  // === Idle auto-off ===
-  // Tracks how long the machine has continuously been idle, independent of
-  // the "did the display state change" gate used for normal color updates -
-  // idle-off needs to fire *while* the state stays unchanged (idle) for a
-  // long time, which normal state-change-triggered updates would never see.
-
-  let idleSince = null;
-  let poweredOffForIdle = false;
-
-  function trackIdleTiming(state) {
-    if (state === 'idle') {
-      if (idleSince === null) idleSince = Date.now();
-    } else {
-      idleSince = null;
-      poweredOffForIdle = false;
-    }
-  }
-
-  async function checkIdleTimeout() {
-    if (!settings || !settings.idleOffMinutes || settings.idleOffMinutes <= 0) return;
-    if (idleSince === null || poweredOffForIdle || celebrating) return;
-    const elapsedMs = Date.now() - idleSince;
-    if (elapsedMs >= settings.idleOffMinutes * 60000) {
-      poweredOffForIdle = true;
-      const hosts = getAllHosts();
-      await Promise.all(hosts.map((h) => sendToHost(h, { on: false })));
-      log_idle('idle timeout reached (' + settings.idleOffMinutes + ' min) — turned off ' + hosts.length + ' instance(s)');
-    }
-  }
-
-  function log_idle(msg) {
-    console.log('[WLED plugin]', msg);
-  }
-
-  setInterval(() => { checkIdleTimeout().catch((err) => console.log('[WLED plugin] checkIdleTimeout error:', err)); }, 30000);
-
-  // === Live machine state (push-based, only while this dialog is open) ===
-
-  function resolveDisplayState(ms) {
-    if (!ms) return 'idle';
-    if (ms.isToolChanging || ms.IsToolChanging) return 'tool-changing';
-    if (ms.isProbing || ms.IsProbing) return 'probing';
-    const raw = ms.status || ms.Status || ms.controllerState || ms.ControllerState || ms.state || ms.State || 'Idle';
-    const s = String(raw).toLowerCase();
-    if (s === 'jog') return 'run';
-    if (s === 'home') return 'homing';
-    if (['run', 'hold', 'alarm', 'door', 'check'].includes(s)) return s;
-    return 'idle';
-  }
-
-  function extractXPosition(ms) {
-    const coords = ms && (ms.machineCoords || ms.MachineCoords || ms.machineCoordinates || ms.MPos || ms.mpos);
-    if (!coords) return null;
-    if (typeof coords === 'string') {
-      const parts = coords.split(',').map((p) => Number.parseFloat(p.trim()));
-      return Number.isFinite(parts[0]) ? parts[0] : null;
-    }
-    if (Array.isArray(coords)) return Number.isFinite(coords[0]) ? coords[0] : null;
-    if (typeof coords === 'object' && Number.isFinite(coords.x)) return coords.x;
-    return null;
-  }
-
-  // Full X/Y/Z for the Connection page's DRO display (separate from
-  // extractXPosition above, which only needs X for the follower).
-  function extractXYZ(ms) {
-    const coords = ms && (ms.MPos || ms.mpos);
-    if (!coords) return null;
-    if (typeof coords === 'string') {
-      const parts = coords.split(',').map((p) => Number.parseFloat(p.trim()));
-      return { x: parts[0], y: parts[1], z: parts[2] };
-    }
-    if (Array.isArray(coords)) return { x: coords[0], y: coords[1], z: coords[2] };
-    if (typeof coords === 'object') return { x: coords.x, y: coords.y, z: coords.z };
-    return null;
-  }
+  // === Live machine state ===
+  // Note: idle auto-off is owned by the bridge, not this dialog. See the
+  // warning banner on the Connection page. Keeping it out of the dialog
+  // avoids two independent idle timers racing each other when both are
+  // running at once (the normal case once the bridge is installed).
 
   function updateDro(ms) {
     const xyz = extractXYZ(ms);
@@ -1032,36 +1324,24 @@
         const value = setting130 ? parseFloat(setting130.value) : null;
         if (value && value > 0) cachedXMax = value;
       }
-    } catch (_) { /* ignore, fall back to null */ }
+    } catch (_) {}
     return cachedXMax;
-  }
-
-  function computeFollowerIndex(ratio, settings) {
-    if (settings.xFollowInvert) ratio = 1 - ratio;
-    const ledCount = Math.max(1, settings.ledCount || 30);
-    return Math.round(ratio * (ledCount - 1));
   }
 
   async function handleMachineState(ms) {
     if (!ms || celebrating) return;
 
-    // Merge this partial/full snapshot into what we already knew, so a
-    // position-only message doesn't wipe out the last known status (or
-    // vice versa).
     lastKnownMachineState = Object.assign({}, lastKnownMachineState, ms);
     const merged = lastKnownMachineState;
+    jobLoaded.merge(ms);
 
     updateDro(merged);
 
-    const state = resolveDisplayState(merged);
-    console.log('[WLED plugin] merged state:', merged, '-> resolved display state:', state);
-    trackIdleTiming(state);
+    const jl = jobLoaded.get();
+    const jobStatus = (jl && jl.status) || merged.jobStatus || merged.senderStatus || null;
+
+    const state = resolveDisplayState(merged, jobStatus);
     let followerIndex = null;
-    // Suppress the follower during homing: ncSender doesn't broadcast MPos
-    // while status is "Home" (confirmed via debug log), so the cursor would
-    // otherwise just freeze at its last known position - misleading, since
-    // it no longer reflects anything real. Show a solid homing color across
-    // the whole strip instead.
     if (settings.xFollowEnabled && state !== 'homing') {
       const rawX = extractXPosition(merged);
       if (typeof rawX === 'number') {
@@ -1074,37 +1354,30 @@
       }
     }
 
-    // Determine job progress mode BEFORE applyColor, so the fan-out to
-    // jobProgressHost correctly skips (or includes) plain status color
-    // this same tick rather than lagging a tick behind.
-    const jobStatus = (merged.jobLoaded && merged.jobLoaded.status) || merged.jobStatus || merged.senderStatus || null;
-    const progressPercent = merged.jobLoaded && typeof merged.jobLoaded.progressPercent === 'number' ? merged.jobLoaded.progressPercent : null;
+    const progressPercent = jl && typeof jl.progressPercent === 'number' ? jl.progressPercent : null;
     const shouldShowProgress = !!(settings.jobProgressEnabled && settings.jobProgressHost && jobStatus === 'running' && progressPercent != null);
     if (shouldShowProgress !== jobProgressActive) {
       jobProgressActive = shouldShowProgress;
-      lastJobProgressLit = null; // force a fresh send when switching modes
+      lastJobProgressLit = null;
     }
 
     liveStateTextEl.textContent = state + (followerIndex != null ? ' (LED ' + followerIndex + ')' : '');
     liveStateDotEl.style.background = STATE_DOT_COLORS[state] || '#8a8a8a';
 
-    console.log('[WLED plugin] state check: current=', state, 'lastDisplayState=', lastDisplayState, 'followerIndex=', followerIndex);
-    if (state !== lastDisplayState || followerIndex !== null) {
-      console.log('[WLED plugin] state changed, calling applyColor');
+    if (state !== lastDisplayState || followerIndex !== lastFollowerIndex) {
       lastDisplayState = state;
-      await applyColor(state, followerIndex);
+      lastFollowerIndex = followerIndex;
+      await queueApplyColor(state, followerIndex);
     }
 
     if (shouldShowProgress) {
-      const { litCount } = buildJobProgressSegments(progressPercent);
+      const { litCount } = buildJobProgressSegments(progressPercent, settings);
       if (litCount !== lastJobProgressLit) {
         lastJobProgressLit = litCount;
         await applyJobProgress(progressPercent);
       }
     }
 
-    // Best-effort job-completion detection from whatever job status field
-    // is present. Only fires the celebration on a running -> completed edge.
     if (jobStatus) {
       if (lastJobStatus === 'running' && jobStatus === 'completed') {
         playCompletionEffect();
@@ -1113,21 +1386,12 @@
     }
   }
 
-  function flattenStatePayload(payload) {
-    if (!payload || typeof payload !== 'object') return {};
-    const nested = payload.machineState || payload.MachineState || {};
-    return Object.assign({}, payload, nested);
-  }
-
   window.addEventListener('message', function (event) {
-    console.log('[WLED plugin] raw message event received:', event.data);
     if (!event.data) return;
     const type = event.data.type;
     if (type !== 'server-state-updated' && type !== 'server-state-update') return;
     const raw = event.data.data || event.data.state;
-    const flat = flattenStatePayload(raw);
-    console.log('[WLED plugin] matched server-state message, flattened:', flat);
-    handleMachineState(flat);
+    handleMachineState(flattenStatePayload(raw));
   });
 
   // === Wiring ===
@@ -1139,8 +1403,14 @@
   });
   getInput('wledHost').addEventListener('input', () => refreshInstancePickers());
   getInput('primaryName').addEventListener('input', () => refreshInstancePickers());
-  getInput('xFollowEnabled').addEventListener('change', () => refreshInstancePickers());
-  getInput('jobProgressEnabled').addEventListener('change', () => refreshInstancePickers());
+  getInput('xFollowEnabled').addEventListener('change', () => {
+    refreshInstancePickers();
+    updateFeatureVisibility();
+  });
+  getInput('jobProgressEnabled').addEventListener('change', () => {
+    refreshInstancePickers();
+    updateFeatureVisibility();
+  });
   getInput('followerHost').addEventListener('change', () => refreshInstancePickers());
   getInput('jobProgressHost').addEventListener('change', () => refreshInstancePickers());
   getInput('testBtn').addEventListener('click', testFlash);

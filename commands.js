@@ -14,14 +14,14 @@ const STATES = ['idle', 'homing', 'run', 'hold', 'alarm', 'door', 'check', 'prob
 
 const DEFAULT_COLORS = {
   idle: { r: 255, g: 255, b: 255 },
-  homing: { r: 0, g: 210, b: 255 },
+  homing: { r: 0, g: 100, b: 255 },
   run: { r: 0, g: 255, b: 0 },
-  hold: { r: 255, g: 193, b: 7 },
+  hold: { r: 255, g: 220, b: 0 },
   alarm: { r: 255, g: 0, b: 0 },
-  door: { r: 253, g: 126, b: 20 },
+  door: { r: 255, g: 220, b: 0 },
   check: { r: 0, g: 123, b: 255 },
   probing: { r: 26, g: 188, b: 156 },
-  'tool-changing': { r: 201, g: 18, b: 168 }
+  'tool-changing': { r: 160, g: 32, b: 240 }
 };
 
 function toFiniteNumber(value, fallback) {
@@ -75,7 +75,7 @@ function buildInitialConfig(raw) {
     secondaryWledHosts: sanitizeHostList(source.secondaryWledHosts),
     brightness: Math.min(255, Math.max(1, Math.round(toFiniteNumber(source.brightness, 255)))),
     idleOffMinutes: Math.min(1440, Math.max(0, Math.round(toFiniteNumber(source.idleOffMinutes, 0)))),
-    completionEffect: ALLOWED_EFFECTS.includes(source.completionEffect) ? source.completionEffect : 'fireworks',
+    completionEffect: ALLOWED_EFFECTS.includes(source.completionEffect) ? source.completionEffect : 'colorloop',
     completionDurationSec: Math.min(60, Math.max(1, Math.round(toFiniteNumber(source.completionDurationSec, 6)))),
     xFollowEnabled: !!source.xFollowEnabled,
     xFollowInvert: !!source.xFollowInvert,
@@ -86,17 +86,17 @@ function buildInitialConfig(raw) {
       : (typeof source.wledHost === 'string' ? source.wledHost.trim() : ''),
     ledCount: Math.min(1000, Math.max(1, Math.round(toFiniteNumber(source.ledCount, 30)))),
     followerPositionOffsetMm: toFiniteNumber(source.followerPositionOffsetMm, 0),
-    followerWidth: Math.min(20, Math.max(1, Math.round(toFiniteNumber(source.followerWidth, 1)))),
+    followerWidth: Math.min(20, Math.max(1, Math.round(toFiniteNumber(source.followerWidth, 3)))),
     followerColor: sanitizeColor(source.followerColor, { r: 255, g: 255, b: 255 }),
     xMaxOverride: source.xMaxOverride ? toFiniteNumber(source.xMaxOverride, null) : null,
     jobProgressEnabled: !!source.jobProgressEnabled,
     jobProgressHost: typeof source.jobProgressHost === 'string' ? source.jobProgressHost.trim() : '',
     jobProgressLedCount: Math.min(1000, Math.max(1, Math.round(toFiniteNumber(source.jobProgressLedCount, 30)))),
     jobProgressInvert: !!source.jobProgressInvert,
+    jobProgressBlendWidth: Math.min(20, Math.max(1, Math.round(toFiniteNumber(source.jobProgressBlendWidth, 3)))),
     jobProgressFillStyle: ALLOWED_FILL_STYLES.includes(source.jobProgressFillStyle) ? source.jobProgressFillStyle : 'gradient',
-    jobProgressStartColor: sanitizeColor(source.jobProgressStartColor, { r: 255, g: 0, b: 0 }),
-    jobProgressEndColor: sanitizeColor(source.jobProgressEndColor, { r: 0, g: 255, b: 0 }),
-    jobProgressBackgroundColor: sanitizeColor(source.jobProgressBackgroundColor, { r: 0, g: 0, b: 0 }),
+    jobProgressStartColor: sanitizeColor(source.jobProgressStartColor, { r: 0, g: 255, b: 0 }),
+    jobProgressEndColor: sanitizeColor(source.jobProgressEndColor, { r: 255, g: 0, b: 0 }),
     colors
   };
 }

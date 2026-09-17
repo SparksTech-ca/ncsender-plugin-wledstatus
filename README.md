@@ -1,6 +1,6 @@
 # WLED Status Light
 
-**Version 1.4.2**
+**Version 1.6.5**
 
 An ncSender plugin that mirrors your CNC machine's status to a
 [WLED](https://kno.wled.ge/)-based RGB LED controller, using WLED's local
@@ -26,9 +26,13 @@ HTTP JSON API — no custom hardware or firmware required.
   Chase, Theater Chase, Colorloop, or Strobe) for a configurable duration
   when a job finishes, then returns to the idle color
 - **Job progress bar** — pick any of your configured instances to fill up as
-  the active job progresses (`jobLoaded.progressPercent` from ncSender), with
-  gradient or solid fill color and configurable direction; that instance
-  automatically switches back to normal status colors when no job is running
+  the active job progresses (`jobLoaded.progressPercent` from ncSender). A
+  completed color fills the finished portion and a remaining color fills the
+  rest; gradient mode blends smoothly between them at the boundary
+  (configurable width), while solid mode uses a hard cutoff — like a
+  two-tone thermometer either way. Direction is configurable, and the
+  instance automatically switches back to normal status colors when no job
+  is running
 - **Idle auto-off** — turns all configured WLED instances off after a
   configurable number of idle minutes (0 = never); resumes automatically on
   the next state change
@@ -83,9 +87,9 @@ Linux.
 | Job Progress | Enable | Shows a job-completion fill bar on the picked instance |
 | Job Progress | Show progress on instance | Dropdown of your configured primary/additional instances |
 | Job Progress | LED count | Total addressable LEDs on this strip |
-| Job Progress | Fill style | Gradient (color shifts as it fills) or solid |
-| Job Progress | Start/end color | Gradient endpoints (end color unused in solid mode) |
-| Job Progress | Background color | Color of the not-yet-reached portion |
+| Job Progress | Fill style | Gradient (blended seam) or solid (hard cutoff) |
+| Job Progress | Completed/remaining color | Finished portion / not-yet-reached portion — used in both fill styles |
+| Job Progress | Blend width | LEDs spanning the transition between completed/remaining color (gradient only) |
 | Job Progress | Invert fill direction | Flips which end fills first |
 | State Colors | Per-state color pickers | idle, homing, run, hold, alarm, door, check, probing, tool-changing |
 
